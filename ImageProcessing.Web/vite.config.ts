@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "robots.txt"],
       manifest: {
-        name: process.env.VITE_PWA_NAME || "SmartPetPath",
-        short_name: "SmartPetPath",
+        name: process.env.VITE_PWA_NAME || "aransolution",
+        short_name: "aransolution",
         start_url: "/",
         display: "standalone",
         background_color: "#0b0f19",

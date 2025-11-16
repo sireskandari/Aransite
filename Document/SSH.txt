@@ -10,3 +10,21 @@ ssh root@188.245.101.233
 >New root password: fKTHEjxuh3JN
 Public key : id_ed25519.pub
  
+
+
+cd /opt/aran
+git pull
+docker compose up --build -d
+
+
+
+cd /opt/aran
+git pull
+
+cd ImageProcessing.Web
+npm install        # only if deps changed
+npm run build
+
+systemctl reload nginx
+
+
