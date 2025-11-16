@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useQuery } from "@tanstack/react-query";
-=======
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
->>>>>>> b186aa7 (v4)
 import { listEdgeData, getEdgeData } from "./api";
 
 export function useEdgeDataList(params: {

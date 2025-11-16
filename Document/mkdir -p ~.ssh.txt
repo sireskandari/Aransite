@@ -1,0 +1,11 @@
+mkdir -p ~/.ssh
+nano ~/.ssh/authorized_keys
+
+
+Ctrl + O
+Ctrl + X
+
+
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+

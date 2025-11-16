@@ -94,7 +94,6 @@ export default function EdgeDataListPage() {
   const [search, setSearch] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const pageSize = 10;
-<<<<<<< HEAD
   const [live, setLive] = useState(true);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -127,16 +126,6 @@ export default function EdgeDataListPage() {
     queryKey: ["EdgeData", { search, fromDate, toDate, pageNumber, pageSize }],
     queryFn: () =>
       listEdgeData({ search, fromDate, toDate, pageNumber, pageSize }),
-=======
-
-  // Live ON by default
-  const [live, setLive] = useState(true);
-
-  // Uses your api.ts: returns { items, pagination } where pagination comes from X-Pagination header.
-  const { data, isFetching, isError, refetch } = useQuery({
-    queryKey: ["EdgeData", { search, pageNumber, pageSize }],
-    queryFn: () => listEdgeData({ search, pageNumber, pageSize }),
->>>>>>> b186aa7 (v4)
     staleTime: 30_000,
   });
 
@@ -145,10 +134,6 @@ export default function EdgeDataListPage() {
     () => rawItems.map(normalizeEdge),
     [rawItems]
   );
-<<<<<<< HEAD
-=======
-
->>>>>>> b186aa7 (v4)
   const totalCount: number | null =
     (data?.pagination?.TotalCount as number | undefined) ??
     (data?.pagination?.totalCount as number | undefined) ??
@@ -247,7 +232,6 @@ export default function EdgeDataListPage() {
           placeholder="Search by camera/model…"
           className="border p-2 rounded w-72"
         />
-<<<<<<< HEAD
         <input
           type="date"
           value={fromDate}
@@ -277,8 +261,6 @@ export default function EdgeDataListPage() {
           Timelapse Viewer
         </button>
 
-=======
->>>>>>> b186aa7 (v4)
         {isFetching && (
           <span className="text-sm text-slate-500">Refreshing…</span>
         )}

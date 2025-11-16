@@ -14,7 +14,6 @@ export type EdgeData = {
   FrameAnnotatedUrl: string;
 };
 
-<<<<<<< HEAD
 export async function generateTimelapseFromEdge(payload: {
   search?: string;
   fromUtc?: string;
@@ -43,10 +42,6 @@ export async function listEdgeData(params: {
   search?: string;
   fromDate?: string;
   toDate?: string;
-=======
-export async function listEdgeData(params: {
-  search?: string;
->>>>>>> b186aa7 (v4)
   pageNumber?: number;
   pageSize?: number;
 }) {
