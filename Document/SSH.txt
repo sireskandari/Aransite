@@ -1,6 +1,7 @@
 Credentials
 User	root
-Password	bJquKs7TXWHs
+Password	wfgrVCnnRcV7
+
 
 
 >SSH

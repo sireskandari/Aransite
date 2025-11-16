@@ -72,21 +72,13 @@ public sealed class EdgeDataController : ControllerBase
     [OutputCache(PolicyName = "EdgeEventsGetAllPolicy")]
     public async Task<ActionResult<ApiResponse>> GetAll(
         [FromQuery] string? search,
-<<<<<<< HEAD
         [FromQuery] DateTime? fromUTC,
         [FromQuery] DateTime? toUTC,
-=======
->>>>>>> b186aa7 (v4)
         CancellationToken ct = default)
     {
         try
         {
-            // Fetch from DB/service
-<<<<<<< HEAD
             List<EdgeEventsResponse> result = await _EdgeEvents.GetAll(search, fromUTC, toUTC, ct);
-=======
-            List<EdgeEventsResponse> result = await _EdgeEvents.GetAll(search, ct);
->>>>>>> b186aa7 (v4)
             return Ok(ApiResponse.Ok(result));
         }
         catch (Exception ex)

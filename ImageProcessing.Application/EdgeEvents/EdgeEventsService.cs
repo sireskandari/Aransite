@@ -66,11 +66,7 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
         return new PagedResult<EdgeEventsResponse>(items, total, pageNumber, pageSize);
     }
 
-<<<<<<< HEAD
     public async Task<List<EdgeEventsResponse>> GetAll(string? search, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct)
-=======
-    public async Task<List<EdgeEventsResponse>> GetAll(string? search, CancellationToken ct)
->>>>>>> b186aa7 (v4)
     {
         var query = db.EdgeEvents.AsQueryable();
 
@@ -82,14 +78,11 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
                 (u.FrameAnnotatedUrl ?? "").Contains(s) ||
                 (u.FrameRawUrl ?? "").Contains(s));
         }
-<<<<<<< HEAD
         if (fromUtc.HasValue)
             query = query.Where(e => e.CaptureTimestampUtc >= fromUtc.Value);
 
         if (toUtc.HasValue)
             query = query.Where(e => e.CaptureTimestampUtc <= toUtc.Value);
-=======
->>>>>>> b186aa7 (v4)
 
         var total = await query.CountAsync(ct);
 
