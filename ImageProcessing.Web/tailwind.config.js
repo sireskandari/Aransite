@@ -1,5 +1,4 @@
 import { shadcnPreset } from "./components.json"
-import animatePlugin from 'tailwind-animatecss';
 
 
 /** @type {import('tailwindcss').Config} */
@@ -12,5 +11,5 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [animatePlugin],
+  plugins: [],
 }
