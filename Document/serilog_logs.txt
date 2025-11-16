@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS serilog_logs;
+
+CREATE TABLE serilog_logs (
+  Id               INT AUTO_INCREMENT PRIMARY KEY,
+  Timestamp        DATETIME(6) NOT NULL,
+  Level            VARCHAR(128),
+  Message          TEXT,
+  MessageTemplate  TEXT,
+  Template         TEXT,       -- ← required by your sink version
+  Exception        TEXT,
+  Properties       TEXT        -- or JSON if you prefer
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

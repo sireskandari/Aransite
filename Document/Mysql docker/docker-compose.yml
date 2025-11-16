@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: smartpetpath-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: myapp
+      MYSQL_USER: myapp
+      MYSQL_PASSWORD: myapppass
+    ports:
+      - "3307:3306"
+    volumes:
+      - myapp-mysql:/var/lib/mysql
+
+volumes:
+  myapp-mysql:

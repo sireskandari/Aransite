@@ -1,0 +1,16 @@
+# set connection string for migrations (optional if using the default in DesignTimeFactory)
+# PowerShell:
+$env:MYAPP_MIGRATION_CS="Server=localhost;Port=3306;Database=smartpetpath;User=smartpetpath;Password=myapppass;TreatTinyAsBoolean=false;DefaultCommandTimeout=60;"
+
+# Bash:
+# export MYAPP_MIGRATION_CS="Server=localhost;Port=3306;Database=smartpetpath;User=smartpetpath;Password=myapppass;TreatTinyAsBoolean=false;DefaultCommandTimeout=60;"
+
+# From repo root:
+dotnet ef migrations add Initial --project SmartPetPath.Infrastructure
+dotnet ef database update      --project SmartPetPath.Infrastructure
+
+
+
+-----
+Add-Migration Initial -StartupProject SmartPetPath.Api -Project SmartPetPath.Infrastructure
+Update-Database -StartupProject SmartPetPath.Api -Project SmartPetPath.Infrastructure

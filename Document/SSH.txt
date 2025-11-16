@@ -1,0 +1,11 @@
+Credentials
+User	root
+Password	bJquKs7TXWHs
+
+
+>SSH
+ssh root@188.245.101.233 
+>SSH Password: C@n@d@160319
+>New root password: fKTHEjxuh3JN
+Public key : id_ed25519.pub
+ 

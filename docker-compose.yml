@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: imageprocessing-api
+    build:
+      context: .               # folder where your API project + Dockerfile live
+      dockerfile: Dockerfile   # adjust if named differently
+    restart: unless-stopped
+
+    depends_on:
+      mysql:
+        condition: service_healthy     # Wait for MySQL to be ready
+      redis:
+        condition: service_started
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+
+      # -----------------------
+      # Database Connection
+      # -----------------------
+      ConnectionStrings__Default: >
+        Server=mysql;Port=3306;Database=myapp;
+        User=myapp;Password=myapppass;
+        TreatTinyAsBoolean=false;
+        DefaultCommandTimeout=60;
+        SslMode=None;
+        AllowPublicKeyRetrieval=True;
+        AllowUserVariables=true
+
+      # -----------------------
+      # Redis Distributed Cache
+      # -----------------------
+      Redis__Configuration: "redis:6379,password=myredispass,abortConnect=false,connectRetry=2"
+
+      # -----------------------
+      # JWT
+      # -----------------------
+      Jwt__Issuer: "ImageProcessing"
+      Jwt__Audience: "ImageProcessing.Client"
+      Jwt__Key: "super-long-random-256-bit-key-change-me"
+
+      # -----------------------
+      # File Storage & FFMPEG
+      # -----------------------
+      FileStorage__UploadPath: "uploads"
+      FileStorage__BaseUrl: "https://YOUR_DOMAIN/uploads/"
+      FFMPEG__FFMPEG_PATH: "/usr/bin/ffmpeg"
+      FFMPEG__OUTPUT_SUBFOLDER: "uploads/timelapses"
+
+    ports:
+      - "5000:8080"         # host:container
+
+    volumes:
+      - uploads_data:/app/uploads
+
+
+  mysql:
+    container_name: imageprocessing-mysql
+    image: mysql:8.0
+    restart: unless-stopped
+    command: ["--default-authentication-plugin=mysql_native_password"]
+
+    environment:
+      MYSQL_ROOT_PASSWORD: "C@n@d@160319"
+      MYSQL_DATABASE: "myapp"
+      MYSQL_USER: "myapp"
+      MYSQL_PASSWORD: "myapppass"
+
+    ports:
+      - "3307:3306"          # access from host (optional)
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    # -----------------------
+    # Healthcheck (API waits for this)
+    # -----------------------
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+
+  redis:
+    container_name: imageprocessing-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "myredispass"]
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+
+# -----------------------
+# Named volumes
+# -----------------------
+volumes:
+  mysql_data:
+  uploads_data:
+  redis_data:
