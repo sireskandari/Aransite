@@ -3,20 +3,20 @@
 # -----------------------
 
 # Cloud REST endpoint (must return HTTP 200 on success)
-API_URL: str = "https://localhost:5292/api/v1/EdgeData"
+API_URL: str = "https://aransolution.com/api/v1/EdgeData"
 
 # --- remote targets (what classes to detect) ---
 # Your API should return JSON with either:
 #   { "targets": ["person","dog"] }
 # or per-camera:
 #   { "default": ["person"], "cameras": [{ "id":"CAM1","targets":["person"] }, ...] }
-REMOTE_TARGETS_URL: str | None = "https://localhost:5292/api/v1/DetectTargets/all"
+REMOTE_TARGETS_URL: str | None = "https://aransolution.com/api/v1/DetectTargets/all"
 REMOTE_TARGETS_TTL_SEC: int = 60  # refresh every 60s
 REMOTE_CAMERAS_REQUIRED = True        # fail fast if remote list is unavailable
 REQUESTS_VERIFY_TLS = False           # or True if your cert is valid
 TEST_FRAME_PATH = None
 # set None to disable remote
-REMOTE_CAMERAS_URL: str | None = "https://localhost:5292/api/v1/cameras/all"
+REMOTE_CAMERAS_URL: str | None = "https://aransolution.com/api/v1/cameras/all"
 REMOTE_CAMERAS_TTL_SEC: int = 60   # refresh list every 60s
 # if True and API fails at startup -> exit
 REMOTE_CAMERAS_REQUIRED: bool = False
