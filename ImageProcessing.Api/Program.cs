@@ -398,11 +398,19 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ImageProcessing API v1");
 });
 
-var uploadPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+var uploadPath = app.Configuration["FileStorage:UploadPath"] ?? "uploads";
+var uploadRoot = Path.Combine(app.Environment.ContentRootPath, uploadPath);
+
+if (!Directory.Exists(uploadRoot))
+{
+    Directory.CreateDirectory(uploadRoot);
+}
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(uploadPath),
-    RequestPath = "/uploads"
+    FileProvider = new PhysicalFileProvider(uploadRoot),
+    RequestPath = "/uploads",
+    ServeUnknownFileTypes = false
 });
 
 app.UseRouting();

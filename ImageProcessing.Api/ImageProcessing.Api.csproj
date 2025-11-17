@@ -47,8 +47,4 @@
     <ProjectReference Include="..\ImageProcessing.Infrastructure\ImageProcessing.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="uploads\" />
-  </ItemGroup>
-
 </Project>
