@@ -72,42 +72,41 @@ public sealed class TimelapseController : ControllerBase
     [HttpGet("from-edge/stream")]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> StreamFromEdge(
-    [FromQuery] string? search,
-    [FromQuery] DateTime? fromUtc,
-    [FromQuery] DateTime? toUtc,
-    CancellationToken ct)
+        [FromQuery] string? search,
+        [FromQuery] DateTime? fromUtc,
+        [FromQuery] DateTime? toUtc,
+        [FromQuery] string? quality,   // "low", "medium", "high"
+        [FromQuery] int? fps,          // optional manual override
+        [FromQuery] int? width,        // optional manual override
+        [FromQuery] int? maxFrames,    // optional manual override
+        CancellationToken ct)
     {
         try
         {
-            const int defaultFps = 20;
-            const int defaultWidth = 0;
-            const int defaultMaxFrames = 5000;
-            const int defaultCrf = 18;
-            const string defaultPreset = "veryfast";
+            // Resolve quality → concrete ffmpeg options
+            var opts = ResolveTimelapseOptions(quality, fps, width, maxFrames);
 
             var relativePath = await _svc.GenerateAsync(
                 search: search,
                 fromUtc: fromUtc,
                 toUtc: toUtc,
-                fps: defaultFps,
-                width: defaultWidth,
-                maxFrames: defaultMaxFrames,
+                fps: opts.fps,
+                width: opts.width,
+                maxFrames: opts.maxFrames,
                 ffmpegPath: _configuration["FFMPEG:FFMPEG_PATH"] ?? "C:\\tools\\ffmpeg\\bin\\ffmpeg.exe",
                 outputSubFolder: _configuration["FFMPEG:OUTPUT_SUBFOLDER"] ?? "uploads\\timelapses",
-                crf: defaultCrf,
-                preset: defaultPreset,
+                crf: opts.crf,
+                preset: opts.preset,
                 ct: ct
             );
 
-            // 👇 FIX STARTS HERE
+            // Base path fix (same as we just did)
             var webRoot = _env.WebRootPath;
             if (string.IsNullOrWhiteSpace(webRoot))
             {
-                // In Docker this is usually "/app"
-                webRoot = AppContext.BaseDirectory;
+                webRoot = AppContext.BaseDirectory; // "/app" in Docker
             }
 
-            // relativePath is like "/uploads/timelapses/<id>/video.mp4"
             var trimmed = relativePath.TrimStart('/', '\\')
                                       .Replace('/', Path.DirectorySeparatorChar);
 
@@ -137,6 +136,60 @@ public sealed class TimelapseController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "TIMELAPSE_ERROR_MARKER_V2: " + ex.Message });
         }
+    }
+
+    private static (int fps, int width, int maxFrames, int crf, string preset)
+    ResolveTimelapseOptions(string? qualityProfile, int? fps, int? width, int? maxFrames)
+    {
+        // Defaults if user doesn’t specify anything
+        var q = (qualityProfile ?? "medium").ToLowerInvariant();
+
+        int resultFps;
+        int resultWidth;
+        int resultMaxFrames;
+        int crf;
+        string preset;
+
+        switch (q)
+        {
+            case "low":
+                // Smallest size / fastest to generate
+                resultFps = fps ?? 10;     // fewer frames per second
+                resultWidth = width ?? 720;    // downscale
+                resultMaxFrames = maxFrames ?? 2000;   // avoid insane length
+                crf = 26;                 // more compression
+                preset = "faster";
+                break;
+
+            case "high":
+                // Highest quality (big files)
+                resultFps = fps ?? 24;
+                resultWidth = width ?? 0;      // keep native
+                resultMaxFrames = maxFrames ?? 8000;
+                crf = 18;                 // higher quality
+                preset = "slow";             // better compression, more CPU
+                break;
+
+            case "medium":
+            default:
+                // Balanced default
+                resultFps = fps ?? 20;
+                resultWidth = width ?? 1280;
+                resultMaxFrames = maxFrames ?? 4000;
+                crf = 22;
+                preset = "medium";
+                break;
+        }
+
+        // Safety clamps
+        if (resultFps < 5) resultFps = 5;
+        if (resultFps > 60) resultFps = 60;
+
+        if (resultWidth < 0) resultWidth = 0; // 0 = keep native
+
+        if (resultMaxFrames <= 0) resultMaxFrames = 1000;
+
+        return (resultFps, resultWidth, resultMaxFrames, crf, preset);
     }
 
 }

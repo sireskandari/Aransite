@@ -97,7 +97,9 @@ export default function EdgeDataListPage() {
   const [live, setLive] = useState(true);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
+  const [timelapseQuality, setTimelapseQuality] = useState<
+    "low" | "medium" | "high"
+  >("medium");
   function parseUtcWithoutZ(value: string | Date): Date {
     if (value instanceof Date) return value;
 
@@ -149,6 +151,10 @@ export default function EdgeDataListPage() {
       // end of day in UTC
       const toIso = new Date(toDate + "T23:59:59Z").toISOString();
       url.searchParams.set("toUtc", toIso);
+    }
+
+    if (timelapseQuality) {
+      url.searchParams.set("quality", timelapseQuality);
     }
 
     window.open(url.toString(), "_blank", "noopener,noreferrer");
@@ -262,6 +268,8 @@ export default function EdgeDataListPage() {
           placeholder="Search by camera/model…"
           className="border p-2 rounded w-72"
         />
+      </div>
+      <div className="flex items-center gap-3">
         <input
           type="date"
           value={fromDate}
@@ -271,7 +279,6 @@ export default function EdgeDataListPage() {
           }}
           className="border p-2 rounded"
         />
-
         <input
           type="date"
           value={toDate}
@@ -281,6 +288,17 @@ export default function EdgeDataListPage() {
           }}
           className="border p-2 rounded"
         />
+        <select
+          value={timelapseQuality}
+          onChange={(e) =>
+            setTimelapseQuality(e.target.value as "low" | "medium" | "high")
+          }
+          className="border p-2 rounded"
+        >
+          <option value="low">Low (small size)</option>
+          <option value="medium">Medium</option>
+          <option value="high">High (large size)</option>
+        </select>
 
         <button
           type="button"
@@ -306,7 +324,7 @@ export default function EdgeDataListPage() {
       {selected ? (
         <>
           {/* Details */}
-          <div className="mx-auto max-w-5xl rounded-lg border bg-white p-3 text-sm text-slate-700">
+          <div className="mx-auto  rounded-lg border bg-white p-3 text-sm text-slate-700">
             <div className="flex flex-wrap gap-x-6 gap-y-1">
               <div>
                 <span className="text-slate-500">Captured:</span> {captureStr}{" "}
@@ -335,7 +353,7 @@ export default function EdgeDataListPage() {
           </div>
 
           {/* Two large images */}
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto ">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <ImageCard title="Raw frame" src={selected.frameRawUrl} />
               <ImageCard title="Annotated" src={selected.frameAnnotatedUrl} />
@@ -343,7 +361,7 @@ export default function EdgeDataListPage() {
           </div>
 
           {/* Thumbnails */}
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto ">
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
               {rows.map((it) => {
                 const active = it.id === selectedId;
@@ -454,15 +472,13 @@ function ImageCard({ title, src }: { title: string; src: string }) {
 function EmptyOrSkeleton({ isFetching }: { isFetching: boolean }) {
   if (isFetching) {
     return (
-      <div className="mx-auto max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mx-auto  grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="h-64 animate-pulse rounded-lg bg-slate-200" />
         <div className="h-64 animate-pulse rounded-lg bg-slate-200" />
       </div>
     );
   }
   return (
-    <div className="mx-auto max-w-5xl text-center text-slate-500">
-      No images found.
-    </div>
+    <div className="mx-auto  text-center text-slate-500">No images found.</div>
   );
 }

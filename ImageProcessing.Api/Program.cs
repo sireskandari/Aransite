@@ -129,6 +129,7 @@ builder.Services.AddHangfireServer();
 
 // our maintenance job implementation (below)
 builder.Services.AddScoped<ILogMaintenance, LogMaintenance>();
+builder.Services.AddScoped<ITimelapseMaintenance, TimelapseMaintenance>();
 
 var key = builder.Configuration["Jwt:Key"]!;
 
@@ -439,6 +440,15 @@ app.UseSerilogRequestLogging();
 app.UseHangfireDashboard("/jobs");
 
 var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+
+RecurringJob.AddOrUpdate<ILogMaintenance>(
+    recurringJobId: "logs-retain-90d-daily",
+    methodCall: j => j.RetainAsync(90, CancellationToken.None),
+    cronExpression: "30 2 * * *",
+    options: new RecurringJobOptions { TimeZone = tz }
+);
+
+// NEW timelapse cleanup job – 12:00 PM every day
 RecurringJob.AddOrUpdate<ILogMaintenance>(
     recurringJobId: "logs-retain-90d-daily",
     methodCall: j => j.RetainAsync(90, CancellationToken.None),
