@@ -24,13 +24,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         modelBuilder.Entity<LogEvent>(entity =>
         {
-            entity.ToTable("serilog_logs", "dbo"); // change to your actual table name & schema
-
+            entity.ToTable("serilog_logs", "dbo");
             entity.HasKey(x => x.Id);
-
-            // optional: config lengths/required/etc if you want to be explicit
-            entity.Property(x => x.Message).HasMaxLength(4000);
-            entity.Property(x => x.Level).HasMaxLength(128);
         });
     }
 }

@@ -74,13 +74,13 @@ public sealed class TimelapseController : ControllerBase
     public async Task<IActionResult> StreamFromEdge(
     [FromQuery] string? search,
     [FromQuery] DateTime? fromUtc,
-    [FromQuery] DateTime? toUtc, CancellationToken ct)
+    [FromQuery] DateTime? toUtc,
+    CancellationToken ct)
     {
         try
         {
-            // DEFAULTS – or pull from config if you want
             const int defaultFps = 20;
-            const int defaultWidth = 0;      // keep original
+            const int defaultWidth = 0;
             const int defaultMaxFrames = 5000;
             const int defaultCrf = 18;
             const string defaultPreset = "veryfast";
@@ -92,18 +92,33 @@ public sealed class TimelapseController : ControllerBase
                 fps: defaultFps,
                 width: defaultWidth,
                 maxFrames: defaultMaxFrames,
-                ffmpegPath: _configuration["FFMPEG:FFMPEG_PATH"] ?? "C:\tools\ffmpeg\bin\ffmpeg.exe",
-                outputSubFolder: _configuration["FFMPEG:OUTPUT_SUBFOLDER"] ?? "uploads\timelapses",
+                ffmpegPath: _configuration["FFMPEG:FFMPEG_PATH"] ?? "C:\\tools\\ffmpeg\\bin\\ffmpeg.exe",
+                outputSubFolder: _configuration["FFMPEG:OUTPUT_SUBFOLDER"] ?? "uploads\\timelapses",
                 crf: defaultCrf,
                 preset: defaultPreset,
                 ct: ct
             );
 
+            // 👇 FIX STARTS HERE
             var webRoot = _env.WebRootPath;
-            var physicalPath = Path.Combine(webRoot, relativePath.TrimStart('/', '\\'));
+            if (string.IsNullOrWhiteSpace(webRoot))
+            {
+                // In Docker this is usually "/app"
+                webRoot = AppContext.BaseDirectory;
+            }
+
+            // relativePath is like "/uploads/timelapses/<id>/video.mp4"
+            var trimmed = relativePath.TrimStart('/', '\\')
+                                      .Replace('/', Path.DirectorySeparatorChar);
+
+            var physicalPath = Path.Combine(webRoot, trimmed);
+            _logger.LogInformation("Timelapse: serving video from {PhysicalPath}", physicalPath);
 
             if (!System.IO.File.Exists(physicalPath))
+            {
+                _logger.LogError("Timelapse: generated video not found at {PhysicalPath}", physicalPath);
                 return NotFound(new { error = "Generated video not found." });
+            }
 
             var stream = new FileStream(
                 physicalPath,
@@ -118,11 +133,10 @@ public sealed class TimelapseController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Timelapse generation (stream) failed");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "TIMELAPSE_ERROR_MARKER_V2: " + ex.Message });
-            //return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+            _logger.LogError(ex, "Timelapse generation (stream) failed - TIMELAPSE_ERROR_MARKER_V2");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "TIMELAPSE_ERROR_MARKER_V2: " + ex.Message });
         }
     }
-
 
 }
