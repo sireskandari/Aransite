@@ -22,10 +22,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        modelBuilder.Entity<LogEvent>(entity =>
+        modelBuilder.Entity<LogEvent>(b =>
         {
-            entity.ToTable("serilog_logs", "dbo");
-            entity.HasKey(x => x.Id);
+            b.ToTable("serilog_logs");
+
+            b.HasKey(x => x.Id);
+
+            b.Property(x => x.Id).HasColumnName("id");
+
+            b.Property(x => x.Timestamp).HasColumnName("Timestamp");
+            b.Property(x => x.Level).HasColumnName("Level");
+            b.Property(x => x.Template).HasColumnName("Template");
+            b.Property(x => x.Message).HasColumnName("Message");
+            b.Property(x => x.Exception).HasColumnName("Exception");
+            b.Property(x => x.Properties).HasColumnName("Properties");
+
+            b.Property(x => x.Ts).HasColumnName("_ts");
         });
     }
 }

@@ -1,13 +1,13 @@
 import api from "../../lib/axios";
 
 export type LogEvent = {
-  id: string;
-  message: string;
-  messageTemplate: string;
+  id: number;
+  timestamp: string;
   level: string;
+  template: string;
+  message: string;
   exception: string;
   properties: string;
-  timeStamp: string;
 };
 
 export async function listLogEvents(params: {

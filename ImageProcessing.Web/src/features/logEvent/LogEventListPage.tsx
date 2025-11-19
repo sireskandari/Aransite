@@ -109,7 +109,6 @@ export default function LogEventsListPage() {
                 <th className="px-3 py-2">Time</th>
                 <th className="px-3 py-2">Level</th>
                 <th className="px-3 py-2">Message</th>
-                <th className="px-3 py-2">Template</th>
                 <th className="px-3 py-2">Exception</th>
                 <th className="px-3 py-2">Properties</th>
               </tr>
@@ -118,7 +117,7 @@ export default function LogEventsListPage() {
               {items.map((log) => (
                 <tr key={log.id} className="align-top">
                   <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-600">
-                    {formatTime(log.timeStamp)}
+                    {log.timestamp}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <LevelBadge level={log.level} />
@@ -127,11 +126,6 @@ export default function LogEventsListPage() {
                     <div className="font-medium text-slate-800">
                       {log.message || <span className="text-slate-400">—</span>}
                     </div>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-slate-600 max-w-xs break-words">
-                    {log.messageTemplate
-                      ? truncate(log.messageTemplate, 160)
-                      : "—"}
                   </td>
                   <td className="px-3 py-2 text-xs text-red-600 max-w-xs break-words">
                     {log.exception ? truncate(log.exception, 220) : "—"}
@@ -154,23 +148,8 @@ export default function LogEventsListPage() {
             className="border border-slate-200 rounded-lg bg-white p-3 space-y-2"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-500">
-                {formatTime(log.timeStamp)}
-              </span>
+              <span className="text-xs text-slate-500">{log.timestamp}</span>
               <LevelBadge level={log.level} />
-            </div>
-
-            <div>
-              <div className="text-sm font-medium text-slate-800">
-                {log.message || (
-                  <span className="text-slate-400">No message</span>
-                )}
-              </div>
-              {log.messageTemplate && (
-                <div className="mt-0.5 text-xs text-slate-500">
-                  Template: {truncate(log.messageTemplate, 120)}
-                </div>
-              )}
             </div>
 
             <div className="space-y-1 text-xs">
