@@ -41,11 +41,15 @@ _next_allowed_sync_ts: float = 0.0  # POSIX timestamp; 0 means "no backoff"
 
 
 def _reset_backoff() -> None:
-    """Reset backoff to initial state and clear any delay."""
+    """Reset backoff to initial state silently unless we were in backoff."""
     global _current_backoff, _next_allowed_sync_ts
+
+    # Only log if we were actually in a backoff window
+    if _next_allowed_sync_ts != 0:
+        _info(f"[BACKOFF] reset to {BACKOFF_START}s")
+
     _current_backoff = BACKOFF_START
     _next_allowed_sync_ts = 0.0
-    _info(f"[BACKOFF] reset to {BACKOFF_START}s")
 
 
 def _increase_backoff() -> None:
@@ -124,7 +128,7 @@ def sync_unsent_once() -> None:
 
     rows = get_unsynced_rows(SYNC_BATCH_SIZE)
     if not rows:
-        _reset_backoff()
+        # nothing to sync
         return
 
     for row_id, ts, cam, cnt, meta_json, raw_path, ann_path in rows:

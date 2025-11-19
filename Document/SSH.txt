@@ -5,9 +5,9 @@ Password	wfgrVCnnRcV7
 
 
 >SSH
-ssh root@188.245.101.233 
+ssh root@46.62.216.78
 >SSH Password: C@n@d@160319
->New root password: fKTHEjxuh3JN
+>New root password: wfgrVCnnRcV7
 Public key : id_ed25519.pub
  
 
@@ -28,3 +28,9 @@ npm run build
 systemctl reload nginx
 
 
+
+
+-------
+user 
+admin@aransolution.com
+P@ssw0rd!
