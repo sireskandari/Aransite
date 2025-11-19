@@ -12,7 +12,7 @@ import CamerasListPage from "../features/cameras/CamerasListPage";
 import ProtectedRoute from "../features/auth/ProtectedRoute";
 import DetectTargetsListPage from "../features/detectTargets/DetectTargetsListPage";
 import VisionListPage from "../features/vision/VisionListPage";
-
+import LogEventsListPage from "../features/logEvent/LogEventListPage";
 export const router = createBrowserRouter([
   {
     element: <MainLayout />,
@@ -58,6 +58,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={["Admin", "User"]}>
             <UsersListPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/logs",
+        element: (
+          <ProtectedRoute roles={["Admin", "User"]}>
+            <LogEventsListPage />
           </ProtectedRoute>
         ),
       },

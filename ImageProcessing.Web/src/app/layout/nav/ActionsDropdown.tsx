@@ -76,6 +76,9 @@ export default function ActionsDropdown() {
           <NavLink to="/users" className={itemCls} onClick={close}>
             Users
           </NavLink>
+          <NavLink to="/logs" className={itemCls} onClick={close}>
+            Logs
+          </NavLink>
         </div>
       </details>
     </li>

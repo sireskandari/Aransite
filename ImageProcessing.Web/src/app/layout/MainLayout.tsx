@@ -180,6 +180,12 @@ export default function MainLayout() {
                   >
                     Users
                   </MobileSubItem>
+                  <MobileSubItem
+                    to="/logs"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Logs
+                  </MobileSubItem>
                 </div>
               </details>
 

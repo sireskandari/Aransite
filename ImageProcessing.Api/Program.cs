@@ -23,11 +23,13 @@ using ImageProcessing.Application.EdgeEvents;
 using ImageProcessing.Application.Cameras;
 using ImageProcessing.Application.DetectTargets;
 using MySql.Data.MySqlClient;
+using ImageProcessing.Application.LogEvents;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1) Bootstrap Serilog from config
 Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Warning()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.MySQL(
@@ -83,6 +85,7 @@ builder.Services.AddScoped<IEdgeEventsService, EdgeEventsService>();
 builder.Services.AddScoped<ICamerasService, CamerasService>();
 builder.Services.AddScoped<IDetectTargetsService, DetectTargetsService>();
 builder.Services.AddScoped<ITimelapseFromEdgeEventsService, TimelapseFromEdgeEventsService>();
+builder.Services.AddScoped<ILogEventService, LogEventService>();
 
 
 
