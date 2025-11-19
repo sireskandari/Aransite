@@ -100,7 +100,12 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
         // 2) Prepare working folders under wwwroot/<outputSubFolder>/<id>
         var id = Guid.NewGuid().ToString("N");
-        var webRoot = _env.WebRootPath ?? "wwwroot";
+        var webRoot = _env.WebRootPath;
+        if (string.IsNullOrWhiteSpace(webRoot))
+        {
+            // In Docker this is typically "/app"
+            webRoot = AppContext.BaseDirectory;
+        }
         var sub = (outputSubFolder ?? "uploads/timelapses").Trim().TrimStart('\\', '/');
         var workDir = Path.Combine(webRoot, sub, id);
         var framesDir = Path.Combine(workDir, "frames");
