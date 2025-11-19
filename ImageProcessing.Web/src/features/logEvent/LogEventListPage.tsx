@@ -257,12 +257,12 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function formatTime(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(); // you can pass locale/timeZone if needed
-}
+// function formatTime(iso: string) {
+//   if (!iso) return "—";
+//   const d = new Date(iso);
+//   if (Number.isNaN(d.getTime())) return iso;
+//   return d.toLocaleString(); // you can pass locale/timeZone if needed
+// }
 
 function truncate(text: string, max: number) {
   if (text.length <= max) return text;
