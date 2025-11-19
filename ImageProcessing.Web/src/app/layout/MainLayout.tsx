@@ -157,6 +157,12 @@ export default function MainLayout() {
                 </summary>
                 <div className="px-2 pb-2">
                   <MobileSubItem
+                    to="/vision"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Vision
+                  </MobileSubItem>
+                  <MobileSubItem
                     to="/cameras"
                     onClick={() => setMobileOpen(false)}
                   >

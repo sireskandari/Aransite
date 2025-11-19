@@ -21,7 +21,8 @@ from ultralytics import YOLO
 
 from config import (
     FRAME_ROOT, FRAME_WIDTH, FRAME_HEIGHT, MODEL_NAME, TEST_FRAME_PATH,
-    REMOTE_TARGETS_URL, REMOTE_TARGETS_TTL_SEC, REQUESTS_VERIFY_TLS
+    REMOTE_TARGETS_URL, REMOTE_TARGETS_TTL_SEC, REQUESTS_VERIFY_TLS,
+    DETECTION_ENABLED,
 )
 
 # ------------------ model (lazy) ------------------
@@ -35,82 +36,17 @@ def _get_model() -> YOLO:
     return _MODEL
 
 
-# ------------------ remote targets cache ------------------
-_targets_cache = {
+# ------------------ targets cache ------------------
+
+_targets_cache: Dict[str, Any] = {
     "expires_at": 0.0,
-    "default": ["person"],
-    "by_camera": {}  # cam_id -> ["person","dog"]
+    "default": ["person"],   # fallback if API not reachable
+    "by_camera": {},         # cam_id -> [targets]
 }
 
 
 def _now() -> float:
     return time.time()
-
-
-def _parse_targets_value(value: Any) -> List[str]:
-    """
-    Normalize the `targets` field into a clean, lowercase list.
-    Accepts:
-      - list/tuple: ["person", "dog"]
-      - JSON-like list string: "[People,Dog]"
-      - comma-separated string: "person, dog,cat"
-      - single token: "person"
-    Special token "all" is preserved (lowercased) so callers can treat it as 'detect everything'.
-    """
-    items: List[str] = []
-
-    if value is None:
-        return items
-
-    # Already a list/tuple
-    if isinstance(value, (list, tuple)):
-        items = [str(x).strip().strip('"').strip("'") for x in value]
-
-    elif isinstance(value, str):
-        s = value.strip()
-
-        # Try JSON decode if looks like a JSON array
-        if s.startswith("[") and s.endswith("]"):
-            try:
-                decoded = json.loads(s)
-                if isinstance(decoded, list):
-                    items = [str(x).strip().strip('"').strip("'")
-                             for x in decoded]
-                else:
-                    # Fallback to comma split
-                    items = [p.strip() for p in re.split(
-                        r"[,\s]+", s.strip("[]")) if p.strip()]
-            except Exception:
-                # Fallback to comma split
-                items = [p.strip() for p in re.split(
-                    r"[,\s]+", s.strip("[]")) if p.strip()]
-        else:
-            # Comma separated? split; otherwise single token
-            if "," in s:
-                items = [p.strip() for p in s.split(",") if p.strip()]
-            else:
-                items = [s]
-
-    # Normalize: lowercase, drop empties, dedupe (preserving order)
-    seen = set()
-    normalized = []
-    for x in items:
-        lx = str(x).lower()
-        if lx and lx not in seen:
-            seen.add(lx)
-            normalized.append(lx)
-    return normalized
-
-
-def _get_case_insensitive(d: Dict[str, Any], key: str, default=None):
-    """Access dict key ignoring case differences."""
-    if key in d:
-        return d[key]
-    # common alternative casings
-    for k in d.keys():
-        if k.lower() == key.lower():
-            return d[k]
-    return default
 
 
 def _fetch_targets() -> None:
@@ -130,47 +66,27 @@ def _fetch_targets() -> None:
             _bump_expiry()
             return
 
-        data = r.json() or {}
+        data = r.json()
+        # Accept either { "targets": [...] } or wrapped in ApiResponse { "data": {...} }
+        if isinstance(data, dict) and "data" in data:
+            data = data["data"]
 
-        # ApiResponse unwrapping (case-insensitive keys)
-        is_success = bool(_get_case_insensitive(data, "IsSuccess", False))
-        result = _get_case_insensitive(data, "Result", None)
+        default = data.get("default") or data.get("targets") or ["all"]
+        cams = data.get("cameras") or []
 
-        if not is_success or not isinstance(result, list):
-            # Unexpected shape; keep previous cache, just bump expiry
-            _bump_expiry()
-            return
-
-        # Build by_camera from result rows
         by_cam: Dict[str, List[str]] = {}
-        for row in result:
-            if not isinstance(row, dict):
+        for c in cams:
+            cid = str(c.get("id") or c.get("key") or "").strip()
+            if not cid:
                 continue
-            camera_key = _get_case_insensitive(row, "CameraKey", "") or ""
-            targets_raw = _get_case_insensitive(row, "Targets", None)
+            t = c.get("targets") or default
+            by_cam[cid] = [str(x).lower() for x in t]
 
-            camera_key = str(camera_key).strip()
-            if not camera_key:
-                continue
-
-            parsed = _parse_targets_value(targets_raw)
-            # If empty list provided, skip; let default handle it
-            if not parsed:
-                continue
-
-            by_cam[camera_key] = parsed  # e.g. ["all"] or ["person","dog"]
-
-        # Default if none provided in API
-        default_targets = ["person"]
-        # If you decide to support a "global/default" row, you could look for a special key here:
-        # if "default" in by_cam: default_targets = by_cam.pop("default")
-
-        _targets_cache["default"] = default_targets
+        _targets_cache["default"] = [str(x).lower() for x in default]
         _targets_cache["by_camera"] = by_cam
         _bump_expiry()
-
     except Exception:
-        # Network/parse errors -> keep old cache and just extend expiry
+        # On any error: just extend TTL and keep old cache
         _bump_expiry()
 
 
@@ -234,26 +150,40 @@ def _draw_anno(img: np.ndarray, dets: List[Dict]) -> np.ndarray:
         color = (0, 220, 255)
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
         label = f'id{d["track_id"]} {d["class_name"]} {d["confidence"]:.2f}'
-        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-        top = max(0, y1 - th - 6)
-        cv2.rectangle(out, (x1, top), (x1 + tw + 2, y1), color, -1)
-        cv2.putText(out, label, (x1, y1 - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+        cv2.rectangle(out, (x1, y1 - th - 4), (x1 + tw, y1), color, -1)
+        cv2.putText(out, label, (x1, y1 - 2),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
     return out
 
 
 def _to_meta(cam_id: str, w: int, h: int, dets: List[Dict], inf_ms: float, targets: List[str]) -> Dict:
-    conf_avg = round(sum(d["confidence"]
-                     for d in dets) / len(dets), 3) if dets else 0.0
+    people = [d for d in dets if d.get("class_name") == "person"]
+    vehicles = [
+        d for d in dets
+        if d.get("class_name") in {"car", "truck", "bus", "motorcycle"}
+    ]
+
+    people_conf_avg = round(
+        sum(d["confidence"] for d in people) / len(people), 3) if people else 0.0
+    vehicles_conf_avg = round(
+        sum(d["confidence"] for d in vehicles) / len(vehicles), 3) if vehicles else 0.0
+
     return {
         "timestamp_utc": datetime.utcnow().isoformat(timespec="milliseconds") + "Z",
         "camera_id": cam_id,
         "image": {"width": int(w), "height": int(h)},
         "compute": {"inference_ms": float(inf_ms), "model": MODEL_NAME},
-        "targets": targets,                      # <--- include what we attempted to detect
-        "detections": dets,
-        "people": {"count": len([d for d in dets if d.get("class_name") == "person"]),
-                   "confidence_avg": conf_avg}
+        "targets": targets,
+        "detections": dets,  # full list – all classes
+        "people": {
+            "count": len(people),
+            "confidence_avg": people_conf_avg,
+        },
+        "vehicles": {
+            "count": len(vehicles),
+            "confidence_avg": vehicles_conf_avg,
+        },
     }
 
 
@@ -296,65 +226,113 @@ def _extract_dets(result, names: Dict[int, str], allowed_ids: Optional[set]) -> 
 
 def detect_one(camera: Dict) -> Tuple[int, Optional[str], Optional[str], Dict]:
     """
-    Returns (count, raw_path, annotated_path, meta).
-    'count' = number of detections (after filtering to targets).
+    Main entry point for one capture + (optional) detection pass.
+
+    Returns:
+        count:              number of detections after filtering to targets
+        raw_path:           path to saved raw frame (always saved if grab worked)
+        annotated_path:     path to annotated frame (only if there are detections)
+        meta:               JSON-serializable metadata dict
     """
     t0 = time.time()
-    cam_key = camera["key"]
-    cam_id = camera["id"]
+    cam_key = camera.get("key") or camera.get("id") or "unknown"
+    cam_id = camera.get("id") or cam_key
 
     # Folder per day
     day = datetime.utcnow().strftime("%Y-%m-%d")
     day_dir = os.path.join(FRAME_ROOT, day)
     os.makedirs(day_dir, exist_ok=True)
 
-    # RAW frame
+    # --- Always grab + save RAW frame (pipeline must keep working) ---
     raw = _grab_raw_frame(camera)
+    if raw is None or getattr(raw, "size", 0) == 0:
+        # Could not grab a usable frame; return empty meta
+        meta = _to_meta(cam_id, FRAME_WIDTH, FRAME_HEIGHT, [], 0.0, [])
+        return 0, None, None, meta
+
     h, w = raw.shape[:2]
     raw_path = _save_jpg(day_dir, cam_id, "raw", raw)
 
-    # Targets from API (names -> IDs)
-    targets = _get_targets_for_camera(cam_key)  # e.g., ["person","dog"]
-    model = _get_model()
-    # YOLO name dict: id -> name
-    names = model.model.names if hasattr(model, "model") and hasattr(
-        model.model, "names") else model.names
+    # If detection globally disabled, just return meta with no detections
+    if not DETECTION_ENABLED:
+        meta = _to_meta(cam_id, w, h, [], 0.0, [])
+        # You can uncomment this if you want to see it in the DB:
+        # meta["compute"] = {"detection_enabled": False}
+        return 0, raw_path, None, meta
 
-    # 1) If "All" (or "*") is present -> no class filter (detect everything)
-    detect_all = any(str(t).lower() in ("all", "*") for t in targets)
-    if detect_all:
-        classes_param = None  # YOLO will detect every class it knows
-    else:
-        # 2) Map target names -> class IDs (case-insensitive)
-        name_to_id = {str(v).lower(): k for k, v in names.items()}
-        wanted_ids = {int(name_to_id[str(t).lower()])
-                      for t in targets if str(t).lower() in name_to_id}
-        # None => all (fallback)
-        classes_param = sorted(wanted_ids) if wanted_ids else None
+    # ---------------- YOLO path guarded by try/except ----------------
+    try:
+        # Targets from API (names -> IDs)
+        targets = _get_targets_for_camera(cam_key)  # e.g., ["person","dog"]
 
-    # Inference & tracking
-    t1 = time.time()
-    results = model.track(
-        source=raw,
-        tracker="bytetrack.yaml",
-        persist=True,
-        classes=classes_param,  # ← filter to targets
-        conf=0.20,
-        verbose=False
-    )
-    inf_ms = (time.time() - t1) * 1000.0
+        model = _get_model()
+        # YOLO name dict: id -> name
+        names = model.model.names if hasattr(model, "model") and hasattr(
+            model.model, "names") else model.names
 
-    res = results[0]
-    dets = _extract_dets(res, names, set(classes_param)
-                         if classes_param is not None else None)
+        # 1) If "All" (or "*") is present -> no class filter (detect everything)
+        detect_all = any(str(t).lower() in ("all", "*") for t in targets)
+        if detect_all:
+            classes_param = None  # YOLO will detect every class it knows
+        else:
+            # 2) Map target names -> class IDs (case-insensitive)
+            name_to_id = {str(v).lower(): k for k, v in names.items()}
+            wanted_ids = {
+                int(name_to_id[str(t).lower()])
+                for t in targets
+                if str(t).lower() in name_to_id
+            }
+            # None => all (fallback)
+            classes_param = sorted(wanted_ids) if wanted_ids else None
 
-    # Annotated only if there are detections
-    annotated_path = None
-    if dets:
-        ann = _draw_anno(raw, dets)
-        annotated_path = _save_jpg(day_dir, cam_id, "annotated", ann)
+        # Inference & tracking
+        t1 = time.time()
+        results = model.track(
+            source=raw,
+            tracker="bytetrack.yaml",
+            persist=True,
+            classes=classes_param,  # ← filter to targets (or None for all)
+            conf=0.20,
+            verbose=False,
+        )
+        inf_ms = (time.time() - t1) * 1000.0
 
-    meta = _to_meta(cam_id, w, h, dets, inf_ms if inf_ms >
-                    0 else (time.time() - t0) * 1000.0, targets)
+        res = results[0]
+        dets = _extract_dets(
+            res,
+            names,
+            set(classes_param) if classes_param is not None else None,
+        )
 
-    return len(dets), raw_path, annotated_path, meta
+        # Annotated only if there are detections
+        annotated_path = None
+        if dets:
+            ann = _draw_anno(raw, dets)
+            annotated_path = _save_jpg(day_dir, cam_id, "annotated", ann)
+
+        meta = _to_meta(
+            cam_id,
+            w,
+            h,
+            dets,
+            inf_ms if inf_ms > 0 else (time.time() - t0) * 1000.0,
+            targets,
+        )
+
+        return len(dets), raw_path, annotated_path, meta
+
+    except Exception as e:
+        # VERY IMPORTANT: never let a YOLO/model error break the main loop
+        print(f"[DETECT] model error for camera={cam_id}: {e}")
+
+        meta = _to_meta(
+            cam_id,
+            w,
+            h,
+            [],
+            0.0,
+            [],
+        )
+        # Optional: mark detection error
+        # meta["compute"] = {"detection_error": str(e)}
+        return 0, raw_path, None, meta

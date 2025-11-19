@@ -15,6 +15,8 @@ REMOTE_TARGETS_TTL_SEC: int = 60  # refresh every 60s
 REMOTE_CAMERAS_REQUIRED = True        # fail fast if remote list is unavailable
 REQUESTS_VERIFY_TLS = False           # or True if your cert is valid
 TEST_FRAME_PATH = None
+# Turn AI detection on/off
+DETECTION_ENABLED = True
 # set None to disable remote
 REMOTE_CAMERAS_URL: str | None = "https://aransolution.com/api/v1/cameras/all"
 REMOTE_CAMERAS_TTL_SEC: int = 60   # refresh list every 60s
@@ -63,7 +65,6 @@ TEST_FRAME_PATH: str | None = "test.jpg"
 # NEW: TLS dev only — ignore self-signed cert warnings (keep False for real HTTPS)
 REQUESTS_VERIFY_TLS: bool = False
 
-SEND_IMAGES_ONLY_IF_COUNT_POSITIVE: bool = True
 DELETE_RAW_AFTER_SUCCESS_SYNC: bool = True
 
 MODEL_NAME: str = "yolo11n.pt"   # or yolo11s.pt / m / l as you like

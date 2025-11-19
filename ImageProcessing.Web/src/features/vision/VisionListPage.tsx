@@ -98,6 +98,39 @@ export default function EdgeDataListPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  function parseUtcWithoutZ(value: string | Date): Date {
+    if (value instanceof Date) return value;
+
+    // Expecting formats like "2025-11-19T03:31:05.11"
+    const [datePart, timePart] = value.split("T");
+    if (!datePart || !timePart) return new Date(value); // fallback
+
+    const [year, month, day] = datePart.split("-").map(Number);
+
+    const [hStr, mStr, sStrRaw] = timePart.split(":");
+    const [sStr, msStrRaw] = (sStrRaw ?? "").split(".");
+
+    const hours = Number(hStr ?? 0);
+    const minutes = Number(mStr ?? 0);
+    const seconds = Number(sStr ?? 0);
+    const ms = msStrRaw ? Number((msStrRaw + "000").slice(0, 3)) : 0; // to milliseconds
+
+    // Interpret as UTC
+    return new Date(
+      Date.UTC(year, month - 1, day, hours, minutes, seconds, ms)
+    );
+  }
+
+  function formatUtcToToronto(value: string | Date) {
+    const d = parseUtcWithoutZ(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+
+    return d.toLocaleString("en-CA", {
+      timeZone: "America/Toronto",
+      hour12: false,
+    });
+  }
+
   const handleOpenTimelapse = () => {
     const base = import.meta.env.VITE_API_BASE;
     const url = new URL("/api/v1/Timelapse/from-edge/stream", base);
@@ -163,10 +196,7 @@ export default function EdgeDataListPage() {
 
   const captureStr = useMemo(() => {
     if (!selected?.captureTimestampUtc) return "";
-    const d = new Date(selected.captureTimestampUtc);
-    return isNaN(d.getTime())
-      ? String(selected.captureTimestampUtc)
-      : d.toLocaleString();
+    return formatUtcToToronto(selected.captureTimestampUtc);
   }, [selected]);
 
   const detCount = useMemo(() => {
@@ -280,7 +310,7 @@ export default function EdgeDataListPage() {
             <div className="flex flex-wrap gap-x-6 gap-y-1">
               <div>
                 <span className="text-slate-500">Captured:</span> {captureStr}{" "}
-                (UTC source)
+                (Canada/Toronto)
               </div>
               <div>
                 <span className="text-slate-500">Camera:</span>{" "}
@@ -325,7 +355,7 @@ export default function EdgeDataListPage() {
                       "relative overflow-hidden rounded-lg border bg-white hover:shadow focus:outline-none " +
                       (active ? "ring-2 ring-blue-500" : "")
                     }
-                    title={new Date(it.captureTimestampUtc).toLocaleString()}
+                    title={formatUtcToToronto(it.captureTimestampUtc)}
                   >
                     <img
                       src={it.frameAnnotatedUrl || it.frameRawUrl}
@@ -334,7 +364,7 @@ export default function EdgeDataListPage() {
                       loading="lazy"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-1 py-0.5 text-[10px] text-white">
-                      {new Date(it.captureTimestampUtc).toLocaleTimeString()}
+                      {formatUtcToToronto(it.captureTimestampUtc).split(" ")[1]}
                     </div>
                   </button>
                 );

@@ -18,13 +18,16 @@ def init_db() -> None:
         meta_json TEXT,
         frame_raw_path TEXT,
         frame_annotated_path TEXT,
-        synced INTEGER NOT NULL DEFAULT 0
+        synced INTEGER NOT NULL DEFAULT 0,
+        missing_files INTEGER NOT NULL DEFAULT 0
     );
     """)
     cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_pc_synced ON people_count(synced);")
+        "CREATE INDEX IF NOT EXISTS idx_pc_synced ON people_count(synced);"
+    )
     cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_pc_created ON people_count(created_at);")
+        "CREATE INDEX IF NOT EXISTS idx_pc_created ON people_count(created_at);"
+    )
 
     # gentle column adds for older DBs
     for col in ("meta_json", "frame_raw_path", "frame_annotated_path"):
@@ -32,6 +35,16 @@ def init_db() -> None:
             cur.execute(f"ALTER TABLE people_count ADD COLUMN {col} TEXT;")
         except Exception:
             pass
+
+    # add missing_files column for older DBs
+    try:
+        cur.execute(
+            "ALTER TABLE people_count "
+            "ADD COLUMN missing_files INTEGER NOT NULL DEFAULT 0;"
+        )
+    except Exception:
+        # already exists
+        pass
 
     con.commit()
     con.close()
@@ -42,27 +55,36 @@ def store_local(
     count: int,
     meta_json: str,
     frame_raw_path: Optional[str],
-    frame_annotated_path: Optional[str]
+    frame_annotated_path: Optional[str],
 ) -> None:
     con = sqlite3.connect(DB_NAME)
     cur = con.cursor()
     cur.execute(
-        "INSERT INTO people_count (created_at, camera_id, count, meta_json, frame_raw_path, frame_annotated_path, synced) "
-        "VALUES (?, ?, ?, ?, ?, ?, 0)",
-        (datetime.utcnow().isoformat(timespec="seconds") + "Z", camera_id,
-         count, meta_json, frame_raw_path, frame_annotated_path)
+        "INSERT INTO people_count "
+        "(created_at, camera_id, count, meta_json, frame_raw_path, frame_annotated_path, synced, missing_files) "
+        "VALUES (?, ?, ?, ?, ?, ?, 0, 0)",
+        (
+            datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            camera_id,
+            count,
+            meta_json,
+            frame_raw_path,
+            frame_annotated_path,
+        ),
     )
     con.commit()
     con.close()
 
 
-def get_unsynced_rows(limit: int) -> List[Tuple[int, str, str, int, Optional[str], Optional[str], Optional[str]]]:
+def get_unsynced_rows(
+    limit: int,
+) -> List[Tuple[int, str, str, int, Optional[str], Optional[str], Optional[str]]]:
     con = sqlite3.connect(DB_NAME)
     cur = con.cursor()
     cur.execute(
         "SELECT id, created_at, camera_id, count, meta_json, frame_raw_path, frame_annotated_path "
         "FROM people_count WHERE synced=0 ORDER BY id ASC LIMIT ?",
-        (limit,)
+        (limit,),
     )
     rows = cur.fetchall()
     con.close()
@@ -72,7 +94,22 @@ def get_unsynced_rows(limit: int) -> List[Tuple[int, str, str, int, Optional[str
 def mark_synced(row_id: int) -> None:
     con = sqlite3.connect(DB_NAME)
     cur = con.cursor()
-    cur.execute("UPDATE people_count SET synced=1 WHERE id=?", (row_id,))
+    cur.execute(
+        "UPDATE people_count SET synced=1 WHERE id=?",
+        (row_id,),
+    )
+    con.commit()
+    con.close()
+
+
+def mark_missing_files(row_id: int) -> None:
+    """Set missing_files=1 for this row so we know images were not found at sync time."""
+    con = sqlite3.connect(DB_NAME)
+    cur = con.cursor()
+    cur.execute(
+        "UPDATE people_count SET missing_files=1 WHERE id=?",
+        (row_id,),
+    )
     con.commit()
     con.close()
 
@@ -88,20 +125,26 @@ def _safe_del(path: Optional[str]) -> None:
 
 
 def cleanup_old_synced(retention_days: int = RETENTION_DAYS) -> int:
-    cutoff = (datetime.utcnow() - timedelta(days=retention_days)
-              ).isoformat(timespec="seconds") + "Z"
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    cutoff_iso = cutoff.isoformat(timespec="seconds") + "Z"
+
     con = sqlite3.connect(DB_NAME)
     cur = con.cursor()
 
     if DELETE_OLD_FRAMES:
         cur.execute(
-            "SELECT frame_raw_path, frame_annotated_path FROM people_count WHERE synced=1 AND created_at < ?", (cutoff,))
+            "SELECT frame_raw_path, frame_annotated_path "
+            "FROM people_count WHERE synced=1 AND created_at < ?",
+            (cutoff_iso,),
+        )
         for raw, ann in cur.fetchall():
             _safe_del(raw)
             _safe_del(ann)
 
     cur.execute(
-        "DELETE FROM people_count WHERE synced=1 AND created_at < ?", (cutoff,))
+        "DELETE FROM people_count WHERE synced=1 AND created_at < ?",
+        (cutoff_iso,),
+    )
     deleted = cur.rowcount
     con.commit()
     con.close()
