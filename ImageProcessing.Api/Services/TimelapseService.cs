@@ -75,7 +75,10 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
         // Validate ffmpeg path early
         if (string.IsNullOrWhiteSpace(ffmpegPath) || !File.Exists(ffmpegPath))
+        {
+            _logger.LogError($"FFmpeg not found at: {ffmpegPath}");
             throw new FileNotFoundException($"FFmpeg not found at: {ffmpegPath}");
+        }
 
         // 1) Pull frames from DB
         var events = await _edgeEvents.GetAll(search, fromUtc, toUtc, ct);
@@ -88,7 +91,10 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
             .ToList();
 
         if (frames.Count < 2)
+        {
+            _logger.LogError($"Need at least 2 frames to build a timelapse.");
             throw new InvalidOperationException("Need at least 2 frames to build a timelapse.");
+        }
 
         // 2) Prepare working folders under wwwroot/<outputSubFolder>/<id>
         var id = Guid.NewGuid().ToString("N");
@@ -121,7 +127,10 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
                 {
                     // 2) If we can map URL/relative path to a local file, use that
                     if (!File.Exists(mapped))
+                    {
+                        _logger.LogError($"Frame not found on disk: {mapped} (from {raw})");
                         throw new FileNotFoundException($"Frame not found on disk: {mapped} (from {raw})");
+                    }
 
                     local = mapped;
                 }
@@ -141,7 +150,10 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
             }
 
             if (localPaths.Count < 2)
+            {
+                _logger.LogError($"After fetching, there are fewer than 2 frames.");
                 throw new InvalidOperationException("After fetching, there are fewer than 2 frames.");
+            }
 
             // 4) Build concat list for FFmpeg
             var duration = 1.0 / fps;
