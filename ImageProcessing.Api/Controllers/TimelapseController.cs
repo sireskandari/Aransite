@@ -119,7 +119,8 @@ public sealed class TimelapseController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Timelapse generation (stream) failed");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "TIMELAPSE_ERROR_MARKER_V2: " + ex.Message });
+            //return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
 
