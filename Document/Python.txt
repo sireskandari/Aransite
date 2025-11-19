@@ -1,0 +1,41 @@
+>> create service 
+sudo nano /etc/systemd/system/aransite.service
+
+>>put the text in it
+
+[Unit]
+Description=Run Aransite Python Script on Boot
+After=network.target
+RequiresMountsFor=/media/ahmad/nvm
+
+[Service]
+Type=simple
+User=ahmad
+WorkingDirectory=/media/ahmad/nvm/projects/aransite/Python
+ExecStart=/usr/bin/python3 /media/ahmad/nvm/projects/aransite/Python/main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
+---------------------------
+
+sudo systemctl daemon-reload
+sudo systemctl restart aransite.service
+sudo systemctl status aransite.service
+journalctl -u aransite.service -f
+
+-----------------------------
+
+>>Restart the service
+sudo systemctl restart aransite.service
+sudo systemctl stop aransite.service
+sudo systemctl start aransite.service
+
+>>Check service status
+systemctl status aransite.service
+
+>>View full logs (live stream)
+journalctl -u aransite.service -f

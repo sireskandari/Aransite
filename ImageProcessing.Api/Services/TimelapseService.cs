@@ -117,6 +117,14 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
                 {
                     local = raw; // already local
                 }
+                else if (TryMapToLocalFile(raw, _env.WebRootPath, out var mapped))
+                {
+                    // 2) If we can map URL/relative path to a local file, use that
+                    if (!File.Exists(mapped))
+                        throw new FileNotFoundException($"Frame not found on disk: {mapped} (from {raw})");
+
+                    local = mapped;
+                }
                 else
                 {
                     var name = $"frame_{i++:000000}.jpg";
@@ -179,6 +187,30 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
         // 7) Return the public URL (relative)
         var relative = "/" + Path.Combine(sub, id, "video.mp4").Replace('\\', '/');
         return relative;
+    }
+    private static bool TryMapToLocalFile(string raw, string webRoot, out string localPath)
+    {
+        localPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(webRoot))
+            return false;
+
+        // If it's an absolute URL, pull out just the path (/uploads/...)
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var uri))
+        {
+            var path = uri.AbsolutePath.TrimStart('/');
+            localPath = Path.Combine(webRoot, path.Replace('/', Path.DirectorySeparatorChar));
+            return true;
+        }
+
+        // If it's a relative web path (/uploads/...)
+        if (raw.StartsWith("/"))
+        {
+            var path = raw.TrimStart('/');
+            localPath = Path.Combine(webRoot, path.Replace('/', Path.DirectorySeparatorChar));
+            return true;
+        }
+
+        return false;
     }
 
     private static string EscapeForFfmpeg(string p) => p.Replace("'", "\\'");
