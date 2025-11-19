@@ -11,7 +11,7 @@ public sealed class LogEventService(IAppDbContext db) : ILogEventService
     {
         return await db.LogEvents
             .Where(u => u.Id == id)
-            .Select(u => new LogEventResponse(u.Id, u.Message!, u.MessageTemplate!, u.Level!, u.Exception!, u.Properties!, u.TimeStamp))
+            .Select(u => new LogEventResponse(u.Id, u.Message!, u.Level!, u.Exception!, u.Properties!, u.TimeStamp))
             .FirstOrDefaultAsync(ct);
     }
     public async Task<bool> DeleteAllAsync(CancellationToken ct)
@@ -33,7 +33,6 @@ public sealed class LogEventService(IAppDbContext db) : ILogEventService
             var s = search.Trim();
             query = query.Where(u =>
                 (u.Message ?? "").Contains(s) ||
-                (u.MessageTemplate ?? "").Contains(s) ||
                 (u.Properties ?? "").Contains(s) ||
                 (u.Exception ?? "").Contains(s));
         }
@@ -44,7 +43,7 @@ public sealed class LogEventService(IAppDbContext db) : ILogEventService
             .OrderByDescending(u => u.TimeStamp)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(u => new LogEventResponse(u.Id, u.Message!, u.MessageTemplate!, u.Level!, u.Exception!, u.Properties!, u.TimeStamp))
+            .Select(u => new LogEventResponse(u.Id, u.Message!, u.Level!, u.Exception!, u.Properties!, u.TimeStamp))
             .ToListAsync(ct);
 
         return new PagedResult<LogEventResponse>(items, total, pageNumber, pageSize);
