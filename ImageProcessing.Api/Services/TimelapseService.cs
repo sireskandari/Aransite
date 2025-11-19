@@ -6,7 +6,7 @@ public interface ITimelapseFromEdgeEventsService
 {
     Task<string> GenerateAsync(
         string? search,
-          DateTime? fromUtc,
+        DateTime? fromUtc,
         DateTime? toUtc,
         int fps,
         int width,          // 0 = keep native resolution (no scaling)
@@ -36,32 +36,34 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
         _httpFactory = httpFactory;
         _edgeEvents = edgeEvents;
     }
+
     private static readonly HashSet<string> ValidX264Presets =
-    new(StringComparer.OrdinalIgnoreCase)
-    {
-        "ultrafast",
-        "superfast",
-        "veryfast",
-        "faster",
-        "fast",
-        "medium",
-        "slow",
-        "slower",
-        "veryslow",
-        "placebo"
-    };
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "ultrafast",
+            "superfast",
+            "veryfast",
+            "faster",
+            "fast",
+            "medium",
+            "slow",
+            "slower",
+            "veryslow",
+            "placebo"
+        };
+
     public async Task<string> GenerateAsync(
-     string? search,
-       DateTime? fromUtc,
+        string? search,
+        DateTime? fromUtc,
         DateTime? toUtc,
-     int fps,
-     int width,
-     int maxFrames,
-     string ffmpegPath,
-     string outputSubFolder,
-     int crf,
-     string preset,
-     CancellationToken ct)
+        int fps,
+        int width,
+        int maxFrames,
+        string ffmpegPath,
+        string outputSubFolder,
+        int crf,
+        string preset,
+        CancellationToken ct)
     {
         if (fps <= 0) fps = 20;
         if (maxFrames <= 0) maxFrames = 5000;
@@ -76,7 +78,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
         // Validate ffmpeg path early
         if (string.IsNullOrWhiteSpace(ffmpegPath) || !File.Exists(ffmpegPath))
         {
-            _logger.LogError($"FFmpeg not found at: {ffmpegPath}");
+            _logger.LogError("FFmpeg not found at: {Path}", ffmpegPath);
             throw new FileNotFoundException($"FFmpeg not found at: {ffmpegPath}");
         }
 
@@ -92,7 +94,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
         if (frames.Count < 2)
         {
-            _logger.LogError($"Need at least 2 frames to build a timelapse.");
+            _logger.LogError("Need at least 2 frames to build a timelapse.");
             throw new InvalidOperationException("Need at least 2 frames to build a timelapse.");
         }
 
@@ -112,38 +114,62 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
         try
         {
-            // 3) Fetch frames → local files (if FrameRawUrl is a local path, skip download)
+            // 3) Fetch frames → local files
             int i = 0;
             foreach (var raw in frames)
             {
                 ct.ThrowIfCancellationRequested();
 
                 string local;
+
+                // Case 1: already a filesystem path
                 if (File.Exists(raw))
                 {
-                    local = raw; // already local
+                    local = raw;
+                    _logger.LogDebug("Timelapse: using existing local frame path {Path}", local);
                 }
-                else if (TryMapToLocalFile(raw, _env.WebRootPath, out var mapped))
+                // Case 2: map URL/relative path to wwwroot
+                else if (TryMapToLocalFile(raw, webRoot, out var mapped))
                 {
-                    // 2) If we can map URL/relative path to a local file, use that
                     if (!File.Exists(mapped))
                     {
-                        _logger.LogError($"Frame not found on disk: {mapped} (from {raw})");
+                        _logger.LogError("Frame not found on disk. Raw={Raw}, Mapped={Mapped}", raw, mapped);
                         throw new FileNotFoundException($"Frame not found on disk: {mapped} (from {raw})");
                     }
 
                     local = mapped;
+                    _logger.LogDebug("Timelapse: mapped {Raw} -> {Mapped}", raw, mapped);
                 }
+                // Case 3: truly remote URL → HTTP download
                 else
                 {
                     var name = $"frame_{i++:000000}.jpg";
                     local = Path.Combine(framesDir, name);
 
-                    using var resp = await client.GetAsync(raw, ct);
-                    resp.EnsureSuccessStatusCode();
+                    try
+                    {
+                        _logger.LogInformation("Timelapse: downloading remote frame from {Url}", raw);
 
-                    await using var fs = new FileStream(local, FileMode.Create, FileAccess.Write, FileShare.None);
-                    await resp.Content.CopyToAsync(fs, ct);
+                        using var resp = await client.GetAsync(raw, ct);
+
+                        if (!resp.IsSuccessStatusCode)
+                        {
+                            _logger.LogError(
+                                "Timelapse: failed to download remote frame. Url={Url}, StatusCode={StatusCode}",
+                                raw, (int)resp.StatusCode);
+
+                            throw new HttpRequestException(
+                                $"Failed to download frame {raw}: {(int)resp.StatusCode} {resp.StatusCode}");
+                        }
+
+                        await using var fs = new FileStream(local, FileMode.Create, FileAccess.Write, FileShare.None);
+                        await resp.Content.CopyToAsync(fs, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Timelapse: exception downloading remote frame from {Url}", raw);
+                        throw;
+                    }
                 }
 
                 localPaths.Add(local);
@@ -151,7 +177,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
             if (localPaths.Count < 2)
             {
-                _logger.LogError($"After fetching, there are fewer than 2 frames.");
+                _logger.LogError("After fetching, there are fewer than 2 frames.");
                 throw new InvalidOperationException("After fetching, there are fewer than 2 frames.");
             }
 
@@ -168,13 +194,10 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
             }
 
             // 5) Build FFmpeg args
-            // If width == 0 => keep native (no scale). Otherwise scale to width, keep aspect.
             string vf = (width > 0)
                 ? $"scale={width}:-2,format=yuv420p"
                 : "format=yuv420p";
 
-            // CRF lower = higher quality. Preset slower = better quality (same size) or smaller file (same quality).
-            // Keep yuv420p for broad compatibility.
             var args =
                 $"-y -f concat -safe 0 -i \"{listFile}\" " +
                 $"-r {fps} -vf \"{vf}\" " +
@@ -185,7 +208,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
             var (ok, stderr) = await RunProcessAsync(ffmpegPath, args, workDir, ct);
             if (!ok)
             {
-                _logger.LogError("FFmpeg failed: {stderr}", stderr);
+                _logger.LogError("FFmpeg failed: {Stderr}", stderr);
                 throw new Exception("FFmpeg failed: " + stderr);
             }
         }
@@ -200,9 +223,11 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
         var relative = "/" + Path.Combine(sub, id, "video.mp4").Replace('\\', '/');
         return relative;
     }
+
     private static bool TryMapToLocalFile(string raw, string webRoot, out string localPath)
     {
         localPath = string.Empty;
+
         if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(webRoot))
             return false;
 
@@ -251,11 +276,21 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
     private static void SafeDeleteFile(string? p)
     {
-        try { if (!string.IsNullOrEmpty(p) && File.Exists(p)) File.Delete(p); } catch { }
+        try
+        {
+            if (!string.IsNullOrEmpty(p) && File.Exists(p))
+                File.Delete(p);
+        }
+        catch { }
     }
 
     private static void SafeDeleteDirectory(string? dir)
     {
-        try { if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
+        try
+        {
+            if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+        catch { }
     }
 }
