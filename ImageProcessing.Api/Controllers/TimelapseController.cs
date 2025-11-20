@@ -1,5 +1,6 @@
 ﻿// Controllers/v1/TimelapseController.cs
 using Asp.Versioning;
+using ImageProcessing.Domain.Entities.Cameras;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Ocsp;
 using System.Runtime.Intrinsics.Arm;
@@ -7,6 +8,7 @@ using System.Runtime.Intrinsics.Arm;
 public sealed class GenerateFromEdgeRequest
 {
     public string? Search { get; set; }
+    public string? CameraId { get; set; }
     public int Fps { get; set; } = 20;
     public int Width { get; set; } = 0;          // 0 = keep native resolution
     public int MaxFrames { get; set; } = 5000;
@@ -49,6 +51,7 @@ public sealed class TimelapseController : ControllerBase
         {
             var url = await _svc.GenerateAsync(
                 search: req.Search,
+                cameraId: req.CameraId,
                 fromUtc: req.FromUtc,
                 toUtc: req.ToUtc,
                 fps: req.Fps,
@@ -73,6 +76,7 @@ public sealed class TimelapseController : ControllerBase
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> StreamFromEdge(
         [FromQuery] string? search,
+        [FromQuery] string? cameraId,
         [FromQuery] DateTime? fromUtc,
         [FromQuery] DateTime? toUtc,
         [FromQuery] string? quality,   // "low", "medium", "high"
@@ -88,6 +92,7 @@ public sealed class TimelapseController : ControllerBase
 
             var relativePath = await _svc.GenerateAsync(
                 search: search,
+                cameraId: cameraId,
                 fromUtc: fromUtc,
                 toUtc: toUtc,
                 fps: opts.fps,

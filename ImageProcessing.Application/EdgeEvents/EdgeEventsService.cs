@@ -40,7 +40,7 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<PagedResult<EdgeEventsResponse>> ListAsync(string? search, int pageNumber, int pageSize, CancellationToken ct)
+    public async Task<PagedResult<EdgeEventsResponse>> ListAsync(string? search, string cameraId, int pageNumber, int pageSize, CancellationToken ct)
     {
         pageNumber = pageNumber <= 0 ? 1 : pageNumber;
         pageSize = pageSize <= 0 ? 10 : Math.Min(pageSize, 100);
@@ -50,8 +50,12 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
-            query = query.Where(u =>
-                (u.CameraId ?? "").Contains(s));
+            query = query.Where(u => (u.CameraId ?? "").Contains(s));
+        }
+        if (!string.IsNullOrWhiteSpace(cameraId))
+        {
+            var c = cameraId.Trim();
+            query = query.Where(u => u.CameraId == c);
         }
 
         var total = await query.CountAsync(ct);
@@ -66,7 +70,7 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
         return new PagedResult<EdgeEventsResponse>(items, total, pageNumber, pageSize);
     }
 
-    public async Task<List<EdgeEventsResponse>> GetAll(string? search, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct)
+    public async Task<List<EdgeEventsResponse>> GetAll(string? search, string cameraId, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct)
     {
         var query = db.EdgeEvents.AsQueryable();
 
@@ -77,6 +81,11 @@ public sealed class EdgeEventsService(IAppDbContext db) : IEdgeEventsService
                 (u.CameraId ?? "").Contains(s) ||
                 (u.FrameAnnotatedUrl ?? "").Contains(s) ||
                 (u.FrameRawUrl ?? "").Contains(s));
+        }
+        if (!string.IsNullOrWhiteSpace(cameraId))
+        {
+            var c = cameraId.Trim();
+            query = query.Where(u => u.CameraId == c);
         }
         if (fromUtc.HasValue)
             query = query.Where(e => e.CaptureTimestampUtc >= fromUtc.Value);

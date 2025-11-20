@@ -36,6 +36,7 @@ public sealed class EdgeDataController : ControllerBase
     [OutputCache(PolicyName = "EdgeEventsListPolicy")]
     public async Task<ActionResult<ApiResponse>> List(
         [FromQuery] string? search,
+        [FromQuery] string? cameraId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken ct = default)
@@ -43,7 +44,7 @@ public sealed class EdgeDataController : ControllerBase
         try
         {
             // Fetch from DB/service
-            PagedResult<EdgeEventsResponse> result = await _EdgeEvents.ListAsync(search, pageNumber, pageSize, ct);
+            PagedResult<EdgeEventsResponse> result = await _EdgeEvents.ListAsync(search, cameraId, pageNumber, pageSize, ct);
 
             // Add pagination header
             var pagination = new Pagination(result.PageNumber, result.PageSize, result.TotalCount);
@@ -65,13 +66,14 @@ public sealed class EdgeDataController : ControllerBase
     [OutputCache(PolicyName = "EdgeEventsGetAllPolicy")]
     public async Task<ActionResult<ApiResponse>> GetAll(
         [FromQuery] string? search,
+        [FromQuery] string? cameraId,
         [FromQuery] DateTime? fromUTC,
         [FromQuery] DateTime? toUTC,
         CancellationToken ct = default)
     {
         try
         {
-            List<EdgeEventsResponse> result = await _EdgeEvents.GetAll(search, fromUTC, toUTC, ct);
+            List<EdgeEventsResponse> result = await _EdgeEvents.GetAll(search, cameraId, fromUTC, toUTC, ct);
             return Ok(ApiResponse.Ok(result));
         }
         catch (Exception ex)

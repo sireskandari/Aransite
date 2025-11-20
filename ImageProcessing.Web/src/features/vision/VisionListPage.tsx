@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listEdgeData } from "./api";
+import { listCameras } from "../cameras/api";
 
 /* ---------- Types & helpers ---------- */
 
@@ -97,6 +98,7 @@ export default function EdgeDataListPage() {
   const [live, setLive] = useState(true);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [cameraId, setCameraId] = useState<string>("");
   const [timelapseQuality, setTimelapseQuality] = useState<
     "low" | "medium" | "high"
   >("medium");
@@ -141,6 +143,10 @@ export default function EdgeDataListPage() {
       url.searchParams.set("search", search.trim());
     }
 
+    if (cameraId.trim()) {
+      url.searchParams.set("cameraId", cameraId.trim());
+    }
+
     if (fromDate) {
       // start of day in UTC
       const fromIso = new Date(fromDate + "T00:00:00Z").toISOString();
@@ -162,12 +168,26 @@ export default function EdgeDataListPage() {
 
   // Uses your api.ts: returns { items, pagination } where pagination comes from X-Pagination header.
   const { data, isFetching, isError, refetch } = useQuery({
-    queryKey: ["EdgeData", { search, fromDate, toDate, pageNumber, pageSize }],
+    queryKey: [
+      "EdgeData",
+      { search, cameraId, fromDate, toDate, pageNumber, pageSize },
+    ],
     queryFn: () =>
-      listEdgeData({ search, fromDate, toDate, pageNumber, pageSize }),
+      listEdgeData({
+        search,
+        fromDate,
+        toDate,
+        cameraId,
+        pageNumber,
+        pageSize,
+      }),
     staleTime: 30_000,
   });
 
+  const { data: cameraData, isLoading: camerasLoading } = useQuery({
+    queryKey: ["cameras"],
+    queryFn: () => listCameras({ pageSize: 100 }),
+  });
   const rawItems: any[] = data?.items ?? [];
   const rows: EdgeRow[] = useMemo(
     () => rawItems.map(normalizeEdge),
@@ -257,64 +277,92 @@ export default function EdgeDataListPage() {
 
   return (
     <section className="space-y-5">
-      {/* Top bar */}
-      <div className="flex items-center gap-3">
-        <input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPageNumber(1);
-          }}
-          placeholder="Search by camera/model…"
-          className="border p-2 rounded w-72"
-        />
-      </div>
-      <div className="flex items-center gap-3">
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => {
-            setFromDate(e.target.value);
-            setPageNumber(1);
-          }}
-          className="border p-2 rounded"
-        />
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => {
-            setToDate(e.target.value);
-            setPageNumber(1);
-          }}
-          className="border p-2 rounded"
-        />
-        <select
-          value={timelapseQuality}
-          onChange={(e) =>
-            setTimelapseQuality(e.target.value as "low" | "medium" | "high")
-          }
-          className="border p-2 rounded"
-        >
-          <option value="low">Low (small size)</option>
-          <option value="medium">Medium</option>
-          <option value="high">High (large size)</option>
-        </select>
+      <div className="flex flex-col gap-3">
+        {/* Row 1: Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPageNumber(1);
+            }}
+            placeholder="Search by camera/model…"
+            className="border p-2 rounded w-full sm:w-72"
+          />
+          <select
+            value={cameraId}
+            onChange={(e) => {
+              setCameraId(e.target.value);
+              setPageNumber(1);
+            }}
+            className="border p-2 rounded w-full sm:w-auto"
+            disabled={camerasLoading}
+          >
+            <option value="">All Cameras</option>
 
-        <button
-          type="button"
-          onClick={handleOpenTimelapse}
-          className="px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-          disabled={isFetching}
-        >
-          Timelapse Viewer
-        </button>
+            {cameraData?.items?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.key}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {isFetching && (
-          <span className="text-sm text-slate-500">Refreshing…</span>
-        )}
-        <div className="flex-1" />
-        <div className="text-sm text-slate-600">Total: {totalCount ?? "—"}</div>
-        <Toggle checked={live} onChange={setLive} label="Live (30s)" />
+        {/* Row 2: Filters / actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => {
+              setFromDate(e.target.value);
+              setPageNumber(1);
+            }}
+            className="border p-2 rounded w-full sm:w-auto"
+          />
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => {
+              setToDate(e.target.value);
+              setPageNumber(1);
+            }}
+            className="border p-2 rounded w-full sm:w-auto"
+          />
+          <select
+            value={timelapseQuality}
+            onChange={(e) =>
+              setTimelapseQuality(e.target.value as "low" | "medium" | "high")
+            }
+            className="border p-2 rounded w-full sm:w-auto"
+          >
+            <option value="low">Low (small size)</option>
+            <option value="medium">Medium</option>
+            <option value="high">High (large size)</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={handleOpenTimelapse}
+            className="px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
+            disabled={isFetching}
+          >
+            Timelapse Viewer
+          </button>
+
+          {isFetching && (
+            <span className="text-sm text-slate-500 w-full sm:w-auto">
+              Refreshing…
+            </span>
+          )}
+
+          {/* Right side info: push to the end on larger screens, stack on small */}
+          <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto justify-between sm:justify-end">
+            <div className="text-sm text-slate-600">
+              Total: {totalCount ?? "—"}
+            </div>
+            <Toggle checked={live} onChange={setLive} label="Live (30s)" />
+          </div>
+        </div>
       </div>
 
       {isError && (

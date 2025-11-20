@@ -16,6 +16,7 @@ export type EdgeData = {
 
 export async function generateTimelapseFromEdge(payload: {
   search?: string;
+  cameraid?: string;
   fromUtc?: string;
   toUtc?: string;
   fps?: number;
@@ -26,6 +27,7 @@ export async function generateTimelapseFromEdge(payload: {
 }) {
   const { data } = await api.post("/Timelapse/from-edge/stream", {
     search: payload.search ?? null,
+    cameraid: payload.cameraid ?? null,
     fromUtc: payload.fromUtc ?? null,
     toUtc: payload.toUtc ?? null,
     fps: payload.fps ?? 20,
@@ -40,6 +42,7 @@ export async function generateTimelapseFromEdge(payload: {
 
 export async function listEdgeData(params: {
   search?: string;
+  cameraId?: string;
   fromDate?: string;
   toDate?: string;
   pageNumber?: number;

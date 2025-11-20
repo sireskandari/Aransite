@@ -6,6 +6,7 @@ public interface ITimelapseFromEdgeEventsService
 {
     Task<string> GenerateAsync(
         string? search,
+        string? cameraId,
         DateTime? fromUtc,
         DateTime? toUtc,
         int fps,
@@ -54,6 +55,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
 
     public async Task<string> GenerateAsync(
         string? search,
+        string? cameraId,
         DateTime? fromUtc,
         DateTime? toUtc,
         int fps,
@@ -83,7 +85,7 @@ public sealed class TimelapseFromEdgeEventsService : ITimelapseFromEdgeEventsSer
         }
 
         // 1) Pull frames from DB
-        var events = await _edgeEvents.GetAll(search, fromUtc, toUtc, ct);
+        var events = await _edgeEvents.GetAll(search, cameraId, fromUtc, toUtc, ct);
         var frames = events
             .Where(e => !string.IsNullOrWhiteSpace(e.FrameRawUrl))
             .OrderBy(e => e.CaptureTimestampUtc)
