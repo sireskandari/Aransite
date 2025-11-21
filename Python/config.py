@@ -76,5 +76,5 @@ FRAME_HEIGHT: int = 720
 
 HEARTBEAT_EVERY_SEC: int = 60
 HEARTBEAT_DEVICE_ID: str = "Jetson Orin Nano Super"
-HEARTBEAT_URL: str = "https://localhost:5292/api/v1/EdgeDevices"
+HEARTBEAT_URL: str = "https://aransolution.com/api/v1/EdgeDevices"
 HEARTBEAT_APP_VERSION: str = "1.0.0"
