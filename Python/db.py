@@ -149,3 +149,35 @@ def cleanup_old_synced(retention_days: int = RETENTION_DAYS) -> int:
     con.commit()
     con.close()
     return deleted
+
+
+def get_last_capture_utc() -> Optional[datetime]:
+    """
+    Returns the most recent created_at timestamp from people_count
+    as a timezone-aware UTC datetime.
+    """
+    con = sqlite3.connect(DB_NAME)
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT created_at
+        FROM people_count
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
+    )
+    row = cur.fetchone()
+    con.close()
+
+    if not row or not row[0]:
+        return None
+
+    ts = row[0]
+
+    try:
+        # Convert 2025-11-20T22:18:05Z -> datetime with UTC timezone
+        if ts.endswith("Z"):
+            ts = ts.replace("Z", "+00:00")
+        return datetime.fromisoformat(ts)
+    except Exception:
+        return None

@@ -2,6 +2,7 @@
 using ImageProcessing.Domain.Entities.Auth;
 using ImageProcessing.Domain.Entities.Cameras;
 using ImageProcessing.Domain.Entities.DetectTargets;
+using ImageProcessing.Domain.Entities.EdgeDevices;
 using ImageProcessing.Domain.Entities.EdgeEvents;
 using ImageProcessing.Domain.Entities.LogEvents;
 using ImageProcessing.Domain.Entities.Users;
@@ -18,6 +19,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Camera> Cameras => Set<Camera>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<LogEvent> LogEvents => Set<LogEvent>();
+    public DbSet<EdgeDevice> EdgeDevices => Set<EdgeDevice>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -3,27 +3,28 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.MySql;
+using ImageProcessing.Api.Middlewares;
+using ImageProcessing.Api.Security;
+using ImageProcessing.Application.Auth;
+using ImageProcessing.Application.Cameras;
+using ImageProcessing.Application.DetectTargets;
+using ImageProcessing.Application.EdgeDevices;
+using ImageProcessing.Application.EdgeEvents;
+using ImageProcessing.Application.LogEvents;
+using ImageProcessing.Application.Users;
+using ImageProcessing.Infrastructure;
+using ImageProcessing.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MySql.Data.MySqlClient;
 using Serilog;
 using Serilog.Debugging;
 using Serilog.Events;
-using ImageProcessing.Api.Middlewares;
-using ImageProcessing.Api.Security;
-using ImageProcessing.Application.Auth;
-using ImageProcessing.Application.Users;
-using ImageProcessing.Infrastructure;
-using ImageProcessing.Infrastructure.Persistence;
 using System.Text;
 using System.Threading.RateLimiting;
-using ImageProcessing.Application.EdgeEvents;
-using ImageProcessing.Application.Cameras;
-using ImageProcessing.Application.DetectTargets;
-using MySql.Data.MySqlClient;
-using ImageProcessing.Application.LogEvents;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +87,7 @@ builder.Services.AddScoped<ICamerasService, CamerasService>();
 builder.Services.AddScoped<IDetectTargetsService, DetectTargetsService>();
 builder.Services.AddScoped<ITimelapseFromEdgeEventsService, TimelapseFromEdgeEventsService>();
 builder.Services.AddScoped<ILogEventService, LogEventService>();
+builder.Services.AddScoped<IEdgeDevicesService, EdgeDevicesService>();
 
 
 

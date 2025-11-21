@@ -73,3 +73,8 @@ TEST_FRAME_PATH: str | None = "test.jpg"
 FRAME_ROOT: str = "frames"
 FRAME_WIDTH: int = 1280          # only used for synthetic fallback
 FRAME_HEIGHT: int = 720
+
+HEARTBEAT_EVERY_SEC: int = 60
+HEARTBEAT_DEVICE_ID: str = "Jetson Orin Nano Super"
+HEARTBEAT_URL: str = "https://localhost:5292/api/v1/EdgeDevices"
+HEARTBEAT_APP_VERSION: str = "1.0.0"

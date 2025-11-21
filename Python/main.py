@@ -2,21 +2,21 @@
 import json
 import signal
 import time
-from typing import List, Dict, Any
-from datetime import datetime
-
+import threading
 import requests
+from typing import List, Dict, Any
+from datetime import datetime, timezone
 from colorama import init as colorama_init, Fore, Style
-
 from config import (
     CAMERAS_JSON_PATH, DETECT_EVERY_SEC, SYNC_EVERY_SEC,
     CLEANUP_EVERY_SEC, RETENTION_DAYS,
     REMOTE_CAMERAS_URL, REMOTE_CAMERAS_TTL_SEC, REMOTE_CAMERAS_REQUIRED,
     REQUESTS_VERIFY_TLS
 )
-from db import init_db, store_local, cleanup_old_synced
+from db import init_db, store_local, cleanup_old_synced, get_last_capture_utc
 from detect import detect_one
 from sync import sync_unsent_once
+from heartbeat import HeartbeatThread
 
 colorama_init(autoreset=True)
 def ok(m): print(Fore.GREEN + m + Style.RESET_ALL)
@@ -26,11 +26,13 @@ def err(m): print(Fore.RED + m + Style.RESET_ALL)
 
 
 stop_flag = False
+stop_event = threading.Event()
 
 
 def _handle(sig, frame):
     global stop_flag
     stop_flag = True
+    stop_event.set()
     warn("\n[SYS] Stop signal received. Shutting down...")
 
 
@@ -46,6 +48,16 @@ try:
     TORONTO_TZ = ZoneInfo("America/Toronto")
 except Exception:
     TORONTO_TZ = None  # Fallback if zoneinfo isn't available
+
+
+def get_last_capture_utc_safe():
+    # You can implement this to query your local DB, or maintain a global variable
+    try:
+        # Example if you have a DB helper:
+        # return get_last_capture_utc()
+        return get_last_capture_utc()
+    except Exception:
+        return None
 
 
 def _uniq_ids(cams: List[Dict[str, Any]]) -> None:
@@ -160,6 +172,10 @@ def _detect_interval_seconds(now_ts: float) -> int:
 def main():
     info("[SYS] Initializing DB...")
     init_db()
+
+    # Start heartbeat thread
+    hb_thread = HeartbeatThread(stop_event, get_last_capture_utc_safe)
+    hb_thread.start()
 
     # First load (required before loop)
     _refresh_cameras(force=True)

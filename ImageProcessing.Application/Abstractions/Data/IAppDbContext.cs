@@ -1,6 +1,7 @@
 ﻿using ImageProcessing.Domain.Entities.Auth;
 using ImageProcessing.Domain.Entities.Cameras;
 using ImageProcessing.Domain.Entities.DetectTargets;
+using ImageProcessing.Domain.Entities.EdgeDevices;
 using ImageProcessing.Domain.Entities.EdgeEvents;
 using ImageProcessing.Domain.Entities.LogEvents;
 using ImageProcessing.Domain.Entities.Users;
@@ -17,6 +18,7 @@ public interface IAppDbContext
     DbSet<EdgeEvent> EdgeEvents { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<LogEvent> LogEvents { get; }
+    DbSet<EdgeDevice> EdgeDevices { get; }
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
