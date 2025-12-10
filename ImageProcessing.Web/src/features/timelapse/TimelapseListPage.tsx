@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listTimelapses } from "./api";
 
@@ -91,6 +91,18 @@ function buildDownloadUrl(row: TimelapseRow): string {
 // }
 
 export default function TimelapsesListPage() {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((reg) => {
+          reg.unregister().then(() => {
+            console.log("SW unregistered:", reg);
+          });
+        });
+      });
+    }
+  }, []);
+
   const [search, setSearch] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const pageSize = 10;
