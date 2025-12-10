@@ -29,11 +29,11 @@ const HeroHeading = ({
   buttons = {
     primary: {
       text: "Request a Project Quote",
-      url: "#contact",
+      url: "/contact-us",
     },
     secondary: {
       text: "Talk to our team",
-      url: "tel:+1-000-000-0000",
+      url: "tel:+1-437-484-5474",
     },
   },
   image = {

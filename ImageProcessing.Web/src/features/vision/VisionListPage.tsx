@@ -155,6 +155,9 @@ export default function EdgeDataListPage() {
 
     const data = await response.json();
     toastSuccess("Timelapse job started. ID = " + data.timelapseId);
+    setTimeout(() => {
+      navigateToTimelapse();
+    }, 1000);
   };
 
   // Uses your api.ts: returns { items, pagination } where pagination comes from X-Pagination header.
@@ -482,6 +485,7 @@ export default function EdgeDataListPage() {
 
 /* ---------- Small UI pieces ---------- */
 import { useState as useReactState } from "react";
+import { navigateToTimelapse } from "@/lib/navigation";
 
 function ImageCard({ title, src }: { title: string; src: string }) {
   const [err, setErr] = useReactState<string | null>(null);

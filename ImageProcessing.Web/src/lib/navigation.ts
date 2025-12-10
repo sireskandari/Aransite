@@ -10,3 +10,6 @@ export function registerNavigator(fn: (path: string) => void) {
 export function navigateToLogin() {
   navImpl("/login");
 }
+export function navigateToTimelapse() {
+  navImpl("/timelapse");
+}

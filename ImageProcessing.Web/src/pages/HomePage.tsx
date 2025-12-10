@@ -75,7 +75,7 @@ export default function HomePage() {
               </p>
             </div>
             <Button asChild size="lg">
-              <a href="#contact">Request a quote</a>
+              <a href="/contact-us">Request a quote</a>
             </Button>
           </div>
         </section>
