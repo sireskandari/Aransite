@@ -17,12 +17,15 @@ public sealed class TimelapseController : ControllerBase
     private readonly ITimelapseJobService _jobSvc;
     private readonly ITimelapseService _timelapseService;
     private readonly ILogger<TimelapseController> _logger;
+    private readonly IWebHostEnvironment _env;
 
     public TimelapseController(
+        IWebHostEnvironment env,
         ITimelapseJobService jobSvc,
         ITimelapseService timelapseService,
         ILogger<TimelapseController> logger)
     {
+        _env = env;
         _jobSvc = jobSvc;
         _timelapseService = timelapseService;
         _logger = logger;
@@ -49,6 +52,37 @@ public sealed class TimelapseController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
+
+    [HttpGet("{id:guid}/stream")]
+    public async Task<IActionResult> Stream(Guid id, CancellationToken ct)
+    {
+        var tl = await _timelapseService.GetByIdAsync(id, ct);
+        if (tl is null || string.IsNullOrWhiteSpace(tl.FilePath))
+        {
+            // 404 should NOT be cached
+            Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+            return NotFound(new { error = "Timelapse not found." });
+        }
+
+        var webRoot = _env.WebRootPath ?? AppContext.BaseDirectory;
+        var physicalPath = Path.Combine(
+            webRoot,
+            tl.FilePath.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar)
+        );
+
+        if (!System.IO.File.Exists(physicalPath))
+        {
+            Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+            return NotFound(new { error = "File not found." });
+        }
+
+        var stream = new FileStream(physicalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        // this 200 CAN be cached long-term
+        Response.Headers["Cache-Control"] = "public, max-age=31536000"; // 1 year
+        return File(stream, "video/mp4", enableRangeProcessing: true);
+    }
+
 
     // Example status endpoint using your TimelapseService
     [HttpGet("{id:guid}")]

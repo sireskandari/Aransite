@@ -66,24 +66,29 @@ function getStatusMeta(status: number | string) {
   return { label, className };
 }
 
-function buildDownloadUrl(row: TimelapseRow): string | null {
-  if (!row.filePath) return null;
-
-  const path = row.filePath.trim();
-  if (!path) return null;
-
-  // If API already returns an absolute URL, just use it
-  if (/^https?:\/\//i.test(path)) return path;
-
-  // Otherwise, join it to the API base
+function buildDownloadUrl(row: TimelapseRow): string {
   const base = import.meta.env.VITE_API_BASE;
-  if (!base) return path;
-
-  const normalized =
-    path.startsWith("/") || path.startsWith("\\") ? path : "/" + path;
-
-  return new URL(normalized, base).toString();
+  return `${base}/Timelapse/${row.id}/stream`;
 }
+
+// function buildDownloadUrl(row: TimelapseRow): string | null {
+//   if (!row.filePath) return null;
+
+//   const path = row.filePath.trim();
+//   if (!path) return null;
+
+//   // If API already returns an absolute URL, just use it
+//   if (/^https?:\/\//i.test(path)) return path;
+
+//   // Otherwise, join it to the API base
+//   const base = import.meta.env.VITE_API_BASE;
+//   if (!base) return path;
+
+//   const normalized =
+//     path.startsWith("/") || path.startsWith("\\") ? path : "/" + path;
+
+//   return new URL(normalized, base).toString();
+// }
 
 export default function TimelapsesListPage() {
   const [search, setSearch] = useState("");
