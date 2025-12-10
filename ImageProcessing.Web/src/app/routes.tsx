@@ -12,6 +12,7 @@ import CamerasListPage from "../features/cameras/CamerasListPage";
 import ProtectedRoute from "../features/auth/ProtectedRoute";
 import DetectTargetsListPage from "../features/detectTargets/DetectTargetsListPage";
 import VisionListPage from "../features/vision/VisionListPage";
+import TimelapsesListPage from "@/features/timelapse/TimelapseListPage";
 import LogEventsListPage from "../features/logEvent/LogEventListPage";
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={["Admin", "User"]}>
             <VisionListPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/timelapse",
+        element: (
+          <ProtectedRoute roles={["Admin", "User"]}>
+            <TimelapsesListPage />
           </ProtectedRoute>
         ),
       },

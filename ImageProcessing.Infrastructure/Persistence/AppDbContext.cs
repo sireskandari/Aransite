@@ -13,6 +13,7 @@ namespace ImageProcessing.Infrastructure.Persistence;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : DbContext(options), IAppDbContext
 {
+    public DbSet<Domain.Entities.Timelapse.Timelapse> Timelapse => Set<Domain.Entities.Timelapse.Timelapse>();
     public DbSet<User> Users => Set<User>();
     public DbSet<DetectTarget> DetectTargets => Set<DetectTarget>();
     public DbSet<EdgeEvent> EdgeEvents => Set<EdgeEvent>();

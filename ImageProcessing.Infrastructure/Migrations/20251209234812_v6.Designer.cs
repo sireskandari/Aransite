@@ -4,6 +4,7 @@ using ImageProcessing.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ImageProcessing.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251209234812_v6")]
+    partial class v6
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -257,14 +260,8 @@ namespace ImageProcessing.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("CameraId")
-                        .HasColumnType("longtext");
-
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("FileFormat")
                         .IsRequired()
@@ -280,15 +277,6 @@ namespace ImageProcessing.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
-
-                    b.Property<DateTime?>("FromUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ToUtc")
-                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 

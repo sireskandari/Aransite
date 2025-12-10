@@ -163,6 +163,12 @@ export default function MainLayout() {
                     Vision
                   </MobileSubItem>
                   <MobileSubItem
+                    to="/timelapse"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Timelapse
+                  </MobileSubItem>
+                  <MobileSubItem
                     to="/cameras"
                     onClick={() => setMobileOpen(false)}
                   >

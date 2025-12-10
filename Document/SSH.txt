@@ -26,7 +26,21 @@ npm install        # only if deps changed
 npm run build
 
 systemctl reload nginx
+---------------
 
+MySQL 
+docker exec -it -u root imageprocessing-mysql mysql -p
+
+C@n@d@160319
+
+
+SHOW DATABASES;
+
+USE myapp;
+
+SHOW COLUMNS FROM serilog_logs;
+
+SHOW CREATE TABLE serilog_logs\G
 
 
 

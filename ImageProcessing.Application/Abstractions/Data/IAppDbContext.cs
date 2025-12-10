@@ -13,6 +13,7 @@ namespace ImageProcessing.Application.Abstractions.Data;
 public interface IAppDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<ImageProcessing.Domain.Entities.Timelapse.Timelapse> Timelapse { get; }
     DbSet<Camera> Cameras { get; }
     DbSet<DetectTarget> DetectTargets{ get; }
     DbSet<EdgeEvent> EdgeEvents { get; }

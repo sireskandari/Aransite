@@ -67,6 +67,9 @@ export default function ActionsDropdown() {
           <NavLink to="/vision" className={itemCls} onClick={close}>
             Vision
           </NavLink>
+          <NavLink to="/timelapse" className={itemCls} onClick={close}>
+            Timelapse
+          </NavLink>
           <NavLink to="/cameras" className={itemCls} onClick={close}>
             Cameras
           </NavLink>

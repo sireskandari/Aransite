@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listEdgeData } from "./api";
 import { listCameras } from "../cameras/api";
+import { toastSuccess } from "@/lib/toast-bridge";
 
 /* ---------- Types & helpers ---------- */
 
@@ -135,35 +136,25 @@ export default function EdgeDataListPage() {
     });
   }
 
-  const handleOpenTimelapse = () => {
+  const handleCreateTimelapse = async () => {
     const base = import.meta.env.VITE_API_BASE;
-    const url = new URL("/api/v1/Timelapse/from-edge/stream", base);
 
-    if (search.trim()) {
-      url.searchParams.set("search", search.trim());
-    }
+    const response = await fetch(base + "/Timelapse/generate-from-edge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        search,
+        cameraId,
+        fromUtc: fromDate
+          ? new Date(fromDate + "T00:00:00Z").toISOString()
+          : null,
+        toUtc: toDate ? new Date(toDate + "T23:59:59Z").toISOString() : null,
+        quality: timelapseQuality,
+      }),
+    });
 
-    if (cameraId.trim()) {
-      url.searchParams.set("cameraId", cameraId.trim());
-    }
-
-    if (fromDate) {
-      // start of day in UTC
-      const fromIso = new Date(fromDate + "T00:00:00Z").toISOString();
-      url.searchParams.set("fromUtc", fromIso);
-    }
-
-    if (toDate) {
-      // end of day in UTC
-      const toIso = new Date(toDate + "T23:59:59Z").toISOString();
-      url.searchParams.set("toUtc", toIso);
-    }
-
-    if (timelapseQuality) {
-      url.searchParams.set("quality", timelapseQuality);
-    }
-
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
+    const data = await response.json();
+    toastSuccess("Timelapse job started. ID = " + data.timelapseId);
   };
 
   // Uses your api.ts: returns { items, pagination } where pagination comes from X-Pagination header.
@@ -342,7 +333,7 @@ export default function EdgeDataListPage() {
 
           <button
             type="button"
-            onClick={handleOpenTimelapse}
+            onClick={handleCreateTimelapse}
             className="px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
             disabled={isFetching}
           >

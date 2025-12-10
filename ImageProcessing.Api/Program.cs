@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.MySql;
+using ImageProcessing.Api.Jobs;
 using ImageProcessing.Api.Middlewares;
 using ImageProcessing.Api.Security;
 using ImageProcessing.Application.Auth;
@@ -11,6 +12,7 @@ using ImageProcessing.Application.DetectTargets;
 using ImageProcessing.Application.EdgeDevices;
 using ImageProcessing.Application.EdgeEvents;
 using ImageProcessing.Application.LogEvents;
+using ImageProcessing.Application.Timelapse;
 using ImageProcessing.Application.Users;
 using ImageProcessing.Infrastructure;
 using ImageProcessing.Infrastructure.Persistence;
@@ -88,6 +90,8 @@ builder.Services.AddScoped<IDetectTargetsService, DetectTargetsService>();
 builder.Services.AddScoped<ITimelapseFromEdgeEventsService, TimelapseFromEdgeEventsService>();
 builder.Services.AddScoped<ILogEventService, LogEventService>();
 builder.Services.AddScoped<IEdgeDevicesService, EdgeDevicesService>();
+builder.Services.AddScoped<ITimelapseService, TimelapseService>();
+builder.Services.AddScoped<ITimelapseJobService, TimelapseJobService>();
 
 
 
