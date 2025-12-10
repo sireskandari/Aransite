@@ -173,7 +173,7 @@ export default function TimelapsesListPage() {
 
                 {/* File path */}
                 <div className="text-xs text-slate-500 break-all">
-                  {u.filePath || "— no file yet —"}
+                  {u.filePath?.toLowerCase() || "— no file yet —"}
                 </div>
 
                 {/* Created date */}

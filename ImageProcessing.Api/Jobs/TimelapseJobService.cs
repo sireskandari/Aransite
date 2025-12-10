@@ -41,7 +41,7 @@ namespace ImageProcessing.Api.Jobs
         public async Task<Guid> EnqueueGenerateFromEdgeAsync(GenerateFromEdgeRequest req, CancellationToken ct)
         {
             // 1) create Timelapse row as "Pending"
-            var createReq = new CreateTimelapseRequest("mp4", "", "0", TimelapseStatus.Pending, "");
+            var createReq = new CreateTimelapseRequest("", "mp4", "0", TimelapseStatus.Pending, "");
             var tl = await _timelapseService.CreateAsync(createReq, ct);
 
             // 2) enqueue background job
@@ -55,7 +55,7 @@ namespace ImageProcessing.Api.Jobs
             {
                 await _timelapseService.UpdateAsync(
                     timelapseId,
-                    new UpdateTimelapseRequest("mp4", "", "0", TimelapseStatus.Processing, null),
+                    new UpdateTimelapseRequest("", "mp4", "0", TimelapseStatus.Processing, null),
                     ct);
 
                 var ffmpegPath = _config["FFMPEG:FFMPEG_PATH"] ?? "C:\\tools\\ffmpeg\\bin\\ffmpeg.exe";
@@ -88,7 +88,7 @@ namespace ImageProcessing.Api.Jobs
 
                 await _timelapseService.UpdateAsync(
                     timelapseId,
-                    new UpdateTimelapseRequest("mp4", relativePath, sizeString, TimelapseStatus.Completed, null),
+                    new UpdateTimelapseRequest(relativePath, "mp4", sizeString, TimelapseStatus.Completed, null),
                     ct);
             }
             catch (Exception ex)
@@ -97,7 +97,7 @@ namespace ImageProcessing.Api.Jobs
 
                 await _timelapseService.UpdateAsync(
                     timelapseId,
-                    new UpdateTimelapseRequest("mp4", "", "0", TimelapseStatus.Failed, ex.Message),
+                    new UpdateTimelapseRequest("", "mp4", "0", TimelapseStatus.Failed, ex.Message),
                     ct);
             }
         }
